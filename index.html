@@ -1,0 +1,1495 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Menu de la semaine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#3f7d4e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icones/icone-192.png">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<style>
+  /* Une colonne de jours + la liste de courses à droite ; sur téléphone, onglets Menu / Courses */
+  :root {
+    --bg: #f7f5f0; --carte: #fff; --surface2: #fbfaf7; --texte: #2b2b2b; --doux: #6b6b6b; --barre: #aaa;
+    --bord: #e4e0d8; --vert: #3f7d4e; --vert-clair: #e5f1e7; --sur-vert: #fff;
+    --accent: #c8642a; --accent-clair: #fdf0e6; --accent-bord: #f0cfb5; --voile: rgba(0,0,0,.45);
+    --poisson: #2f6f9f; --volaille: #b9852a; --viande: #a8433a; --vegetarien: #3f7d4e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171a17; --carte: #212521; --surface2: #1b1f1b; --texte: #e8e6e1; --doux: #a3a59f; --barre: #6f726d;
+      --bord: #343a34; --vert: #2f6a3e; --vert-clair: #233a29; --sur-vert: #f2f5f0;
+      --accent: #d9783f; --accent-clair: #3a2a1f; --accent-bord: #5a3a26; --voile: rgba(0,0,0,.6);
+      --poisson: #4f8fc0; --volaille: #c99a3e; --viande: #c0605a; --vegetarien: #5a9e6a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171a17; --carte: #212521; --surface2: #1b1f1b; --texte: #e8e6e1; --doux: #a3a59f; --barre: #6f726d;
+    --bord: #343a34; --vert: #2f6a3e; --vert-clair: #233a29; --sur-vert: #f2f5f0;
+    --accent: #d9783f; --accent-clair: #3a2a1f; --accent-bord: #5a3a26; --voile: rgba(0,0,0,.6);
+    --poisson: #4f8fc0; --volaille: #c99a3e; --viande: #c0605a; --vegetarien: #5a9e6a;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--texte); line-height: 1.45; }
+  header { background: var(--vert); color: var(--sur-vert); padding-block: 18px;
+           padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; opacity: .9; font-size: .95rem; }
+  main { max-width: 1200px; margin: 0 auto; padding-block: 16px 90px;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  button { font: inherit; color: var(--texte); cursor: pointer; border: 1px solid var(--bord); background: var(--carte);
+           border-radius: 8px; padding: 8px 14px; }
+  button:hover { border-color: var(--vert); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.principal { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .barre { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .panneau { background: var(--carte); border: 1px solid var(--bord); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; min-width: 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .reglages { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 12px; }
+  .reglages label { display: block; font-size: .9rem; }
+  .reglages select, .reglages input[type=number] { width: 100%; padding: 6px; margin-top: 4px; font: inherit; }
+  table.grille-repas { border-collapse: collapse; font-size: .85rem; margin-top: 6px; }
+  .grille-repas th, .grille-repas td { padding: 2px 6px; text-align: center; }
+  .saison { font-size: .9rem; color: var(--doux); }
+  .saison b { color: var(--vegetarien); }
+  .synchro { font-size: .85rem; color: var(--doux); }
+  .equilibre { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+  .pastille { border-radius: 999px; padding: 3px 10px; font-size: .85rem; color: #fff; }
+  .p-poisson { background: var(--poisson); } .p-volaille { background: var(--volaille); }
+  .p-viande { background: var(--viande); } .p-vegetarien { background: var(--vegetarien); }
+  .p-plaisir { background: var(--accent); }
+  .contenu { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  .jours { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .jour { background: var(--carte); border: 1px solid var(--bord); border-radius: 12px; padding: 12px; min-width: 0; }
+  .jour h3 { margin: 0 0 8px; font-size: 1rem; }
+  .repas { border-left: 4px solid var(--bord); padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; background: var(--surface2); }
+  .repas.poisson { border-color: var(--poisson); } .repas.volaille { border-color: var(--volaille); }
+  .repas.viande { border-color: var(--viande); } .repas.vegetarien { border-color: var(--vegetarien); }
+  .repas .moment { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--doux); }
+  .repas .nom { font-weight: 600; cursor: pointer; display: block; margin: 2px 0; }
+  .repas .nom:hover { color: var(--accent); text-decoration: underline; }
+  .repas .infos { font-size: .8rem; color: var(--doux); display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .repas button { padding: 2px 8px; font-size: .8rem; }
+  .repas.vide { color: var(--doux); font-style: italic; font-size: .85rem; }
+  .courses h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  .courses h4 { margin: 14px 0 4px; font-size: .9rem; color: var(--vegetarien); border-bottom: 1px solid var(--bord); padding-bottom: 2px; }
+  .courses ul { list-style: none; padding: 0; margin: 0; }
+  .courses li { display: flex; gap: 8px; align-items: baseline; font-size: .92rem; padding: 2px 0; }
+  .courses li label { display: flex; gap: 8px; align-items: baseline; flex: 1; cursor: pointer; min-width: 0; }
+  .courses li .qte { margin-left: auto; color: var(--doux); white-space: nowrap; }
+  .courses li.coche span { text-decoration: line-through; color: var(--barre); }
+  .courses.masquer li.coche { display: none; }
+  .options-courses { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .85rem; color: var(--doux); }
+  .modale { position: fixed; inset: 0; background: var(--voile); display: none; align-items: center; justify-content: center;
+            padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 20; }
+  .modale.ouverte { display: flex; }
+  .modale .boite { background: var(--carte); border-radius: 14px; max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; padding: 20px; }
+  .modale h2 { margin-top: 0; }
+  .recette-imprimee { display: none; }
+  .astuce { font-size: .85rem; color: var(--doux); }
+  .erreur { color: var(--viande); font-size: .85rem; }
+  .badge-batch { background: var(--accent-clair); color: var(--accent); border-radius: 999px; padding: 1px 8px; font-size: .75rem; font-weight: 600; margin-left: 4px; }
+  .bandeau { background: var(--accent-clair); border: 1px solid var(--accent-bord); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: .92rem; }
+  .bandeau .nom { font-weight: 600; cursor: pointer; text-decoration: underline; }
+  .encadre { background: var(--vert-clair); border-radius: 10px; padding: 8px 12px; font-size: .9rem; margin: 10px 0; }
+  .encadre.batch { background: var(--accent-clair); }
+  .archives li { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bord); }
+  .archives li div { flex: 1; min-width: 0; }
+  .archives ul { list-style: none; padding: 0; }
+
+  /* Partager avec le foyer */
+  .lien-foyer input { width: 100%; padding: 8px; font: inherit; font-size: .85rem; color: var(--texte); background: var(--surface2);
+                      border: 1px solid var(--bord); border-radius: 8px; }
+  .bouton-lien { display: inline-block; border: 1px solid var(--bord); border-radius: 8px; padding: 8px 14px; color: var(--texte);
+                 background: var(--carte); text-decoration: none; }
+  .qr { display: inline-block; background: #fff; padding: 10px; border-radius: 10px; }
+  .qr img, .qr canvas { display: block; max-width: 100%; }
+
+  /* Déplacer les repas */
+  .poignee { touch-action: none; cursor: grab; border: none; background: none; padding: 0 6px 0 0; font-size: 1rem;
+             line-height: 1; color: var(--doux); vertical-align: -1px; }
+  .poignee:hover { color: var(--accent); }
+  @media (pointer: coarse) { .poignee { padding: 4px 10px 4px 0; font-size: 1.2rem; } }
+  /* Créneaux non prévus : petite zone pointillée, toujours là pour ne rien décaler pendant un glisser */
+  .repas.depot { border: 1px dashed var(--bord); border-left-width: 1px; color: var(--doux); background: transparent;
+                 font-size: .75rem; text-align: center; padding: 3px; opacity: .7; }
+  body.en-glisse .repas.depot { opacity: 1; border-color: var(--accent-bord); }
+  .repas.survol { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .repas.selectionne { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .fantome { position: fixed; z-index: 30; pointer-events: none; opacity: .9; box-shadow: 0 8px 24px rgba(0,0,0,.25); margin: 0; }
+  .aide-deplacer { background: var(--accent-clair); border: 1px solid var(--accent-bord); border-radius: 10px; padding: 8px 12px;
+                   font-size: .9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .alerte { font-size: .8rem; color: var(--viande); }
+  .maison { font-size: .8rem; color: var(--vegetarien); }
+
+  /* Préférences d'ingrédients */
+  .prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+  .prefs h4 { margin: 0 0 2px; font-size: .95rem; }
+  .prefs form { display: flex; gap: 6px; margin: 6px 0; }
+  .prefs input[type=text] { flex: 1; min-width: 0; padding: 7px; font: inherit; color: var(--texte); background: var(--carte);
+                            border: 1px solid var(--bord); border-radius: 8px; }
+  .puces { display: flex; flex-wrap: wrap; gap: 6px; }
+  .puce { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 4px 2px 10px; font-size: .85rem;
+          background: var(--surface2); border: 1px solid var(--bord); }
+  .puce button { border: none; background: none; padding: 0 6px; font-size: 1rem; line-height: 1; color: var(--doux); }
+  .puce.maison-puce { background: var(--vert-clair); }
+  .puce.non-puce { background: var(--accent-clair); }
+
+  /* Onglets Menu / Courses, seulement sur petit écran */
+  .onglets { display: none; }
+  @media (max-width: 900px) {
+    .contenu { grid-template-columns: minmax(0, 1fr); }
+    .onglets { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; gap: 8px;
+               background: var(--carte); border-top: 1px solid var(--bord);
+               padding-block: 8px max(8px, env(safe-area-inset-bottom, 0px));
+               padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    .onglets button { flex: 1; padding: 10px; font-weight: 600; }
+    .onglets button[aria-pressed="true"] { background: var(--vert); color: var(--sur-vert); border-color: var(--vert); }
+    body[data-vue="menu"] #courses { display: none; }
+    body[data-vue="courses"] #vue-menu, body[data-vue="courses"] #panneau-reglages, body[data-vue="courses"] #panneau-ingredients,
+    body[data-vue="courses"] .barre, body[data-vue="courses"] #info-saison { display: none; }
+    .barre { gap: 6px; }
+    .barre button { padding: 6px 10px; font-size: .9rem; }
+    header { padding-block: 12px; }
+    header h1 { font-size: 1.25rem; }
+  }
+  @media (pointer: coarse) {
+    .courses li { padding: 7px 0; font-size: 1.02rem; border-bottom: 1px solid var(--bord); }
+    .courses li input { width: 22px; height: 22px; flex: none; align-self: center; }
+    .courses li label { align-items: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  @media print {
+    header, .barre, details, .repas button, .no-print, .onglets { display: none !important; }
+    body { background: #fff; color: #000; }
+    .contenu { grid-template-columns: 1fr; }
+    .jours { grid-template-columns: repeat(2, 1fr); }
+    .jour, .panneau { break-inside: avoid; border-color: #ccc; }
+    .courses { break-before: page; }
+    .recette-imprimee { display: block; break-inside: avoid; margin-bottom: 14px; }
+    #recettes-impression { break-before: page; }
+  }
+</style>
+<header>
+  <h1>🥕 Menu de la semaine</h1>
+  <p>Des recettes simples, de saison et équilibrées, avec la liste de courses qui va avec.</p>
+</header>
+
+<main>
+  <div class="barre">
+    <button class="principal" id="btn-generer">✨ Générer une nouvelle semaine</button>
+    <button id="btn-copier">📋 Copier la liste de courses</button>
+    <button id="btn-foyer" hidden>👪 Partager avec le foyer</button>
+    <button id="btn-emporter">📱 Emporter la semaine</button>
+    <button id="btn-archives">📚 Mes semaines</button>
+    <button id="btn-imprimer">🖨️ Imprimer</button>
+    <span class="synchro" id="synchro"></span>
+  </div>
+  <p class="saison" id="info-saison"></p>
+
+  <details class="panneau" id="panneau-reglages">
+    <summary>⚙️ Réglages</summary>
+    <div class="reglages">
+      <div>
+        <label>Nombre de personnes
+          <input type="number" id="r-personnes" min="1" max="12">
+        </label>
+        <label style="margin-top:10px">Saison
+          <select id="r-saison">
+            <option value="auto">Automatique (selon la date)</option>
+            <option value="printemps">Printemps</option>
+            <option value="ete">Été</option>
+            <option value="automne">Automne</option>
+            <option value="hiver">Hiver</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <label>Temps max. en semaine (lun–jeu)
+          <select id="r-temps">
+            <option value="20">20 min</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="999">Pas de limite</option>
+          </select>
+        </label>
+        <label style="margin-top:10px"><input type="checkbox" id="r-plaisir"> Autoriser 1 plat « plaisir » le week-end</label>
+        <label style="margin-top:10px">🍱 Batch cooking (cuisiner le dimanche pour la semaine)
+          <select id="r-batch">
+            <option value="0">Non</option>
+            <option value="1x2">1 plat pour 2 repas</option>
+            <option value="1x3">1 plat pour 3 repas</option>
+            <option value="2x2">2 plats pour 2 repas chacun</option>
+            <option value="2x3">2 plats pour 3 repas chacun</option>
+          </select>
+        </label>
+        <label style="margin-top:10px">Régime alimentaire
+          <select id="r-regime">
+            <option value="omnivore">Omnivore (de tout, équilibré)</option>
+            <option value="pescetarien">Sans viande (poisson autorisé)</option>
+            <option value="vegetarien">🌱 Végétarien</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <span style="font-size:.9rem">Repas à prévoir</span>
+        <table class="grille-repas" id="r-repas"></table>
+      </div>
+    </div>
+    <p class="astuce">Les réglages s'appliquent au prochain clic sur « Générer ». Le nombre de personnes met à jour la liste immédiatement.</p>
+  </details>
+
+  <details class="panneau" id="panneau-ingredients">
+    <summary>🧺 Mes ingrédients <span class="astuce" id="resume-prefs"></span></summary>
+    <div class="prefs">
+      <div>
+        <h4>🏠 J'ai déjà à la maison</h4>
+        <p class="astuce">Les recettes qui les utilisent passent en priorité, et ils sont mis à part dans la liste de courses.</p>
+        <form data-liste="dejaLa"><input type="text" id="saisie-dejaLa" list="liste-ingredients" placeholder="ex. : courgette, lentilles…" aria-label="Ingrédient déjà à la maison"><button>Ajouter</button></form>
+        <div class="puces" id="puces-dejaLa"></div>
+      </div>
+      <div>
+        <h4>🙅 Pas envie cette semaine</h4>
+        <p class="astuce">Retirés des menus pendant 7 jours, puis ils reviennent tout seuls.</p>
+        <form data-liste="pasCetteSemaine"><input type="text" id="saisie-pasCetteSemaine" list="liste-ingredients" placeholder="ex. : chou, pâtes…" aria-label="Ingrédient à éviter cette semaine"><button>Ajouter</button></form>
+        <div class="puces" id="puces-pasCetteSemaine"></div>
+      </div>
+      <div>
+        <h4>🚫 On n'aime pas</h4>
+        <p class="astuce">Toujours exclus des menus. Vous pouvez aussi écrire « poisson » ou « viande ».</p>
+        <form data-liste="aimePas"><input type="text" id="saisie-aimePas" list="liste-ingredients" placeholder="ex. : champignons, fenouil…" aria-label="Ingrédient à toujours exclure"><button>Ajouter</button></form>
+        <div class="puces" id="puces-aimePas"></div>
+      </div>
+    </div>
+    <datalist id="liste-ingredients"></datalist>
+    <p class="astuce" id="info-prefs"></p>
+    <button class="principal" data-pref="appliquer">✨ Refaire la semaine avec ces choix</button>
+  </details>
+
+  <div class="contenu">
+    <section id="vue-menu">
+      <div id="bandeau-batch"></div>
+      <p class="aide-deplacer" id="aide-deplacer" hidden>↔️ Touchez la poignée ⠿ d'un autre repas pour les échanger, ou un créneau « non prévu » pour l'y déplacer.
+        <button data-annuler-selection>Annuler</button></p>
+      <p class="astuce" style="margin-top:0">Astuce : faites glisser un repas par sa poignée ⠿ pour le changer de jour ou passer du dîner au déjeuner.</p>
+      <div class="jours" id="jours"></div>
+      <div class="panneau" style="margin-top:16px">
+        <strong>Équilibre de la semaine</strong>
+        <div class="equilibre" id="equilibre"></div>
+        <p class="astuce" style="margin-bottom:0"><span id="reperes"></span> Cliquez sur 🔄 pour changer un plat qui ne vous tente pas.</p>
+      </div>
+    </section>
+    <aside class="panneau courses" id="courses"></aside>
+  </div>
+
+  <section id="recettes-impression"></section>
+</main>
+
+<nav class="onglets" aria-label="Affichage">
+  <button data-vue="menu" aria-pressed="true">📅 Menu</button>
+  <button data-vue="courses" aria-pressed="false">🛒 Courses <span id="reste-courses"></span></button>
+</nav>
+
+<div class="modale" id="modale">
+  <div class="boite" id="modale-contenu"></div>
+</div>
+
+<script src="recettes.js"></script>
+<script src="config-firebase.js"></script>
+<script>
+const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const MOMENTS = { dej: "Déjeuner", din: "Dîner" };
+const TYPES = {
+  poisson:    { label: "Poisson",    emoji: "🐟" },
+  volaille:   { label: "Volaille",   emoji: "🍗" },
+  viande:     { label: "Viande",     emoji: "🥩" },
+  vegetarien: { label: "Végétarien", emoji: "🌱" }
+};
+// Source de protéines d'un plat végétarien, déduite de ses ingrédients
+const BASES = {
+  legumineuses: { label: "Légumineuses", emoji: "🫘" },
+  oeufs:        { label: "Œufs",         emoji: "🥚" },
+  laitiers:     { label: "Fromage",      emoji: "🧀" }
+};
+const LEGUMINEUSES = /lentilles|pois chiches|pois cassés|haricots (rouges|blancs|noirs)|tofu|fèves/;
+function baseVege(r) {
+  if (r.proteine !== "vegetarien") return null;
+  if (r.ingredients.some(([, , n]) => LEGUMINEUSES.test(n))) return "legumineuses";
+  if (r.ingredients.some(([q, , n]) => q && n === "œuf")) return "oeufs";
+  return "laitiers";
+}
+// Un repas complet = protéines + féculents + légumes (≥ 150 g par personne)
+const FECULENTS = ["riz", "riz arborio", "pâtes", "semoule", "quinoa", "boulgour", "nouilles chinoises",
+  "pommes de terre", "pommes de terre nouvelles", "patate douce", "pain de campagne", "pain à burger",
+  "galettes de sarrasin", "gnocchis", "polenta", "orge perlé", "tortillas", "feuilles de lasagne",
+  "pâte brisée", "pâte feuilletée", "pâte à pizza"];
+const LEGUMINEUSES_FECULENTES = /lentilles|pois chiches|pois cassés|haricots (rouges|blancs|noirs)/;
+const FROMAGES = ["feta", "ricotta", "mozzarella", "emmental râpé", "parmesan", "fromage de chèvre",
+  "halloumi", "reblochon", "yaourt nature", "raclette (tranches)"];
+const PAS_LEGUMES = ["ail", "oignon", "oignon rouge", "oignon nouveau", "échalote", "citron", "citron vert",
+  "persil", "coriandre", "menthe", "basilic", "sauge", "ciboulette", "gingembre", "noix", "pomme", "poire",
+  "avocat", "pommes de terre", "pommes de terre nouvelles", "patate douce"];
+const LEGUMES_HORS_RAYON = ["épinards surgelés", "petits pois surgelés", "tomates concassées (boîte)", "maïs (boîte)"];
+// Poids moyen (g) des légumes comptés à la pièce
+const POIDS_PIECE = { tomate: 120, courgette: 200, poivron: 150, poireau: 150, endive: 100, aubergine: 250,
+  concombre: 300, radis: 10, "betterave cuite": 100, fenouil: 200 };
+
+function analyseEquilibre(r) {
+  const ings = r.ingredients.filter(([q]) => q);
+  const proteines = ings.map(([, , n]) => n).filter(n =>
+    r.proteine === "vegetarien"
+      ? LEGUMINEUSES.test(n) || n === "œuf" || FROMAGES.includes(n)
+      : ["Boucherie & volaille", "Poissonnerie"].includes(RAYON_DE[n]) || n.startsWith("thon"));
+  const feculents = ings.map(([, , n]) => n).filter(n => FECULENTS.includes(n) || LEGUMINEUSES_FECULENTES.test(n));
+  let poidsLegumes = 0;
+  const legumes = [];
+  for (const [q, u, n] of ings) {
+    const estLegume = (RAYON_DE[n] === "Fruits & légumes" && !PAS_LEGUMES.includes(n)) || LEGUMES_HORS_RAYON.includes(n);
+    if (!estLegume) continue;
+    legumes.push(n);
+    poidsLegumes += u === "g" ? q : q * (POIDS_PIECE[n] || 100);
+  }
+  return { proteines, feculents, legumes, poidsLegumes,
+           ok: proteines.length > 0 && feculents.length > 0 && poidsLegumes >= 150 };
+}
+
+const NOMS_SAISONS ={ printemps: "printemps", ete: "été", automne: "automne", hiver: "hiver" };
+const CLE_STOCKAGE = "menu-semaine-v1";
+
+// Rayon de chaque ingrédient (index inversé de RAYONS)
+const RAYON_DE = {};
+for (const [rayon, liste] of Object.entries(RAYONS)) for (const ing of liste) RAYON_DE[ing] = rayon;
+const ORDRE_RAYONS = [...Object.keys(RAYONS), "Divers"];
+
+// ------------------------------------------------------------------ état
+const etatParDefaut = () => ({
+  reglages: {
+    personnes: 2, saison: "auto", tempsMax: 30, plaisir: true, sansViande: false, sansPoisson: false, batch: "0",
+    // Par défaut : tous les dîners + les déjeuners du week-end
+    repas: JOURS.map((_, i) => ({ dej: i >= 5, din: true }))
+  },
+  plan: {},     // "jour-moment" -> nom de recette
+  batch: [],    // plats cuisinés en avance : [{ nom, cles: ["0-din", "2-din"] }]
+  coches: {},   // ingrédients déjà achetés
+  creee: null,  // date de création de la semaine
+  archives: []  // semaines précédentes
+});
+
+let etat = charger();
+
+function charger() {
+  try {
+    const brut = localStorage.getItem(CLE_STOCKAGE);
+    if (brut) return Object.assign(etatParDefaut(), JSON.parse(brut));
+  } catch (e) { /* stockage indisponible : on repart de zéro */ }
+  return etatParDefaut();
+}
+function sauver() {
+  try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch (e) {}
+  if (partage.semaine) planifierEcriture();
+}
+
+// ------------------------------------------------------------------ synchronisation
+// La semaine est partagée entre tous les appareils du foyer : un document
+// « semaine » (menu, réglages, historique) et un document « coches » (articles
+// achetés, cochés un par un pour que deux personnes au magasin ne s'écrasent pas).
+// Deux hébergements possibles :
+//  - le site web (GitHub Pages) avec la base Firebase, via le lien secret du foyer ;
+//  - la page claude.ai, avec sa propre base.
+// Ouverte en fichier local, la page reste dans le navigateur comme avant.
+const partage = { semaine: null, coches: null, ecrireCoche: null, immediat: false, lectureSeule: false, foyer: null };
+// « sale » : un changement local n'est pas encore enregistré (on ignore alors les échos du serveur)
+let sale = false, ecritureEnCours = false, ecritureEnAttente = false, minuteurEcriture = null, fileCoches = Promise.resolve();
+
+function etatPartage() {
+  const { coches, ...reste } = etat;
+  return JSON.parse(JSON.stringify(reste));
+}
+
+function afficherSynchro(texte) { document.getElementById("synchro").textContent = texte; }
+
+function erreurPartage(e) {
+  const code = e && e.code;
+  if (code === "invalid_argument") {
+    partage.lectureSeule = true;
+    afficherSynchro("👀 Lecture seule : demandez au propriétaire de vous inviter comme éditeur pour modifier.");
+  } else if (code === "permission-denied") {
+    partage.lectureSeule = true;
+    afficherSynchro("⚠️ Accès refusé par la base : vérifiez les règles Firestore et les domaines autorisés (voir le guide).");
+  } else if (typeof code === "string" && code.startsWith("auth/") && code !== "auth/network-request-failed") {
+    afficherSynchro("⚠️ Connexion à Firebase impossible : vérifiez config-firebase.js et la connexion « Anonyme » (voir le guide).");
+  } else if (code === "quota_exceeded" || code === "resource-exhausted") {
+    afficherSynchro("⚠️ Espace ou quota plein : supprimez d'anciennes semaines dans « Mes semaines ».");
+  } else {
+    afficherSynchro("📴 Hors ligne : vos changements partiront au retour du réseau.");
+  }
+}
+
+// Une seule écriture à la fois, regroupée après une courte pause
+function planifierEcriture() {
+  sale = true;
+  clearTimeout(minuteurEcriture);
+  minuteurEcriture = setTimeout(() => { minuteurEcriture = null; ecrireSemaine(); }, 400);
+}
+async function ecrireSemaine() {
+  if (partage.lectureSeule) { sale = false; return; }
+  // Firebase garde lui-même les écritures en file (même hors ligne) : pas besoin d'attendre
+  if (partage.immediat) {
+    partage.semaine.set(etatPartage()).then(() => afficherSynchro("☁️ Synchronisé")).catch(erreurPartage);
+    if (!minuteurEcriture) sale = false;
+    return;
+  }
+  if (ecritureEnCours) { ecritureEnAttente = true; return; }
+  ecritureEnCours = true;
+  try {
+    await partage.semaine.set(etatPartage());
+    afficherSynchro("☁️ Synchronisé");
+  } catch (e) { erreurPartage(e); }
+  ecritureEnCours = false;
+  if (ecritureEnAttente) { ecritureEnAttente = false; ecrireSemaine(); }
+  else if (!minuteurEcriture) sale = false;
+}
+
+function changerCoche(id, coche) {
+  if (coche) etat.coches[id] = true; else delete etat.coches[id];
+  try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch (e) {}
+  if (!partage.coches || partage.lectureSeule) return;
+  if (partage.immediat) { partage.ecrireCoche(id, coche).catch(erreurPartage); return; }
+  fileCoches = fileCoches.then(() => partage.ecrireCoche(id, coche)).catch(erreurPartage);
+}
+function viderCoches() {
+  etat.coches = {};
+  if (!partage.coches || partage.lectureSeule) return;
+  if (partage.immediat) { partage.coches.set({ items: {} }).catch(erreurPartage); return; }
+  fileCoches = fileCoches.then(() => partage.coches.set({ items: {} })).catch(erreurPartage);
+}
+
+// --- Hébergement 1 : page claude.ai
+async function fournisseurClaude() {
+  const db = await window.claude.use("db");
+  if (!db) return null;
+  const coches = db.doc("foyer/coches");
+  return {
+    semaine: db.doc("foyer/semaine"), coches, immediat: false,
+    // update fusionne les champs imbriqués ; s'il n'y a pas encore de document, on le crée
+    ecrireCoche: (id, v) => coches.update({ items: { [id]: v } }).catch(() => coches.set({ items: { ...etat.coches } }))
+  };
+}
+
+// --- Hébergement 2 : site web + Firebase (voir config-firebase.js et GUIDE-MISE-EN-LIGNE.md)
+const VERSION_FIREBASE = "10.12.2";
+const CLE_FOYER = "menu-foyer";
+const firebaseConfigure = () => typeof window.FIREBASE_CONFIG === "object" && !!window.FIREBASE_CONFIG.apiKey
+  && location.protocol.startsWith("http");
+
+function chargerScript(src) {
+  return new Promise((ok, echec) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = ok; s.onerror = () => echec(new Error("Script indisponible : " + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Identifiant secret du foyer : dans le lien (#foyer-…), sinon celui mémorisé sur cet appareil
+function lireFoyer() {
+  const m = location.hash.match(/^#foyer-([a-z0-9]{20,})$/);
+  if (m) { prefLocale("foyer", m[1]); return m[1]; }
+  return prefLocale("foyer") || null;
+}
+function nouveauFoyer() {
+  const octets = crypto.getRandomValues(new Uint8Array(16));
+  return [...octets].map(o => (o % 36).toString(36)).join("") + Date.now().toString(36);
+}
+const lienFoyer = id => `${location.origin}${location.pathname}#foyer-${id}`;
+
+async function fournisseurFirebase(foyer) {
+  const base = `https://www.gstatic.com/firebasejs/${VERSION_FIREBASE}/`;
+  for (const f of ["firebase-app-compat.js", "firebase-auth-compat.js", "firebase-firestore-compat.js"]) await chargerScript(base + f);
+  if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+  const db = firebase.firestore();
+  // Garde les données sur l'appareil : la liste reste utilisable sans réseau au magasin
+  try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* navigateur privé, etc. */ }
+  const auth = firebase.auth();
+  const dejaConnecte = await new Promise(ok => { const stop = auth.onAuthStateChanged(u => { stop(); ok(u); }); });
+  if (!dejaConnecte) await auth.signInAnonymously();
+  const dossier = db.collection("foyers").doc(foyer).collection("donnees");
+  const coches = dossier.doc("coches");
+  return {
+    semaine: dossier.doc("semaine"), coches, immediat: true,
+    // « merge » ne touche qu'à l'article coché, pas au reste de la liste
+    ecrireCoche: (id, v) => coches.set({ items: { [id]: v } }, { merge: true })
+  };
+}
+
+async function connecterPartage() {
+  let fournisseur = null;
+  try {
+    if (window.claude) fournisseur = await fournisseurClaude();
+    else if (firebaseConfigure()) {
+      partage.foyer = lireFoyer();
+      document.getElementById("btn-foyer").hidden = false;
+      if (!partage.foyer) { afficherSynchro("👪 Pas encore partagé : cliquez sur « Partager avec le foyer »."); return; }
+      afficherSynchro("☁️ Connexion…");
+      fournisseur = await fournisseurFirebase(partage.foyer);
+    }
+  } catch (e) {
+    erreurPartage(e);
+    return;
+  }
+  if (!fournisseur) return;
+  Object.assign(partage, fournisseur);
+  afficherSynchro("☁️ Connexion…");
+  let premier = true;
+  // Firebase : être aussi prévenu quand le serveur confirme ce qui était en cache
+  // (sinon un foyer encore vide n'est jamais rempli)
+  const ecouter = (ref, suite, erreur) => partage.immediat
+    ? ref.onSnapshot({ includeMetadataChanges: true }, suite, erreur) : ref.onSnapshot(suite, erreur);
+  ecouter(partage.semaine, snap => {
+    if (snap.metadata.hasPendingWrites || sale) return;
+    if (!snap.exists) {
+      // Un appareil qui n'a encore rien reçu du serveur attend avant de décider
+      if (snap.metadata.fromCache && partage.immediat) return;
+      // Première ouverture : on partage la semaine déjà préparée
+      if (premier) ecrireSemaine();
+      premier = false;
+      return;
+    }
+    premier = false;
+    const d = JSON.parse(JSON.stringify(snap.data()));
+    etat = { ...etatParDefaut(), ...d, coches: etat.coches,
+             reglages: { ...etatParDefaut().reglages, ...d.reglages } };
+    try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch (e) {}
+    remplirReglages();
+    afficher();
+    if (!partage.lectureSeule) afficherSynchro(navigator.onLine === false ? "📴 Hors ligne" : "☁️ Synchronisé");
+  }, erreurPartage);
+  ecouter(partage.coches, snap => {
+    if (!snap.exists) return;
+    const items = snap.data().items || {};
+    etat.coches = Object.fromEntries(Object.entries(items).filter(([, v]) => v));
+    afficherCourses();
+  }, erreurPartage);
+}
+addEventListener("offline", () => { if (partage.semaine) afficherSynchro("📴 Hors ligne : la liste reste utilisable, les coches partiront au retour du réseau."); });
+addEventListener("online", () => { if (partage.semaine) afficherSynchro("☁️ Synchronisé"); });
+
+// ------------------------------------------------------------------ partager avec le foyer
+async function ouvrirFoyer() {
+  // Premier partage : on crée le foyer et on y envoie la semaine en cours
+  if (!partage.foyer) {
+    partage.foyer = nouveauFoyer();
+    prefLocale("foyer", partage.foyer);
+    history.replaceState(null, "", "#foyer-" + partage.foyer);
+    connecterPartage();
+  }
+  const lien = lienFoyer(partage.foyer);
+  const message = `Voici notre menu de la semaine et la liste de courses à cocher ensemble : ${lien}`;
+  document.getElementById("modale-contenu").innerHTML = `<h2>👪 Partager avec le foyer</h2>
+    <p>Toute personne qui ouvre ce lien voit le menu, les recettes et la liste de courses, et peut cocher les articles :
+      les coches apparaissent chez tout le monde en direct. <b>Pas besoin de compte.</b></p>
+    <p class="lien-foyer"><input type="text" id="lien-foyer" value="${echapper(lien)}" readonly aria-label="Lien du foyer"></p>
+    <div class="barre">
+      <button class="principal" id="copier-foyer">📋 Copier le lien</button>
+      <a class="bouton-lien" href="https://wa.me/?text=${encodeURIComponent(message)}" target="_blank" rel="noopener">💬 Envoyer par WhatsApp</a>
+    </div>
+    <p class="astuce">Ou faites scanner ce code avec l'appareil photo du téléphone :</p>
+    <div id="qr-foyer" class="qr"></div>
+    <h3>Sur le téléphone</h3>
+    <ol><li>Ouvrir le lien.</li>
+      <li>Menu du navigateur → <b>Ajouter à l'écran d'accueil</b> (Safari : bouton Partager → « Sur l'écran d'accueil »).</li>
+      <li>L'icône 🥕 ouvre ensuite directement votre menu, même sans réseau au magasin.</li></ol>
+    <p class="astuce">Gardez ce lien pour le foyer : toute personne qui l'a peut voir et modifier la liste.</p>
+    <p style="text-align:right"><button data-fermer>Fermer</button></p>`;
+  document.getElementById("modale").classList.add("ouverte");
+  document.getElementById("copier-foyer").addEventListener("click", async e => {
+    const ok = await copier(lien);
+    if (!ok) document.getElementById("lien-foyer").select();
+    e.target.textContent = ok ? "✅ Lien copié" : "Sélectionné : Ctrl+C pour copier";
+  });
+  try {
+    if (!window.QRCode) await chargerScript("https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js");
+    new QRCode(document.getElementById("qr-foyer"), { text: lien, width: 200, height: 200, colorDark: "#1f3b26", colorLight: "#ffffff" });
+  } catch (e) {
+    document.getElementById("qr-foyer").textContent = "QR code indisponible hors connexion : utilisez le lien.";
+  }
+}
+
+function saisonCourante() {
+  if (etat.reglages.saison !== "auto") return etat.reglages.saison;
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 5) return "printemps";
+  if (m >= 6 && m <= 8) return "ete";
+  if (m >= 9 && m <= 11) return "automne";
+  return "hiver";
+}
+
+const recetteParNom = nom => RECETTES.find(r => r.nom === nom);
+const aleatoire = tab => tab[Math.floor(Math.random() * tab.length)];
+
+// ------------------------------------------------------------------ génération
+function creneauxActifs() {
+  const res = [];
+  etat.reglages.repas.forEach((r, jour) => {
+    for (const moment of ["dej", "din"]) if (r[moment]) res.push({ jour, moment, cle: `${jour}-${moment}` });
+  });
+  return res;
+}
+
+// ------------------------------------------------------------------ préférences d'ingrédients
+// Trois listes : ce qu'on a déjà (oriente les recettes), ce qu'on ne veut pas
+// cette semaine (7 jours) et ce qu'on n'aime pas (toujours exclu).
+const normaliser = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+// Mots qui en contiennent un autre sans être le même aliment
+const FAUX_AMIS = { pomme: /pommes de terre/, lait: /lait de coco/, pain: /pain d'epices/ };
+const SEPT_JOURS = 7 * 24 * 3600 * 1000;
+const RAYON_MAISON = "🏠 Déjà à la maison (vérifier la quantité)";
+
+const dejaLa = () => etat.reglages.dejaLa || [];
+const aimePas = () => etat.reglages.aimePas || [];
+const pasCetteSemaine = () => (etat.reglages.pasCetteSemaine || []).filter(x => new Date(x.jusqu) > new Date());
+const exclusions = () => [...aimePas(), ...pasCetteSemaine().map(x => x.terme)];
+
+function ingredientCorrespond(nomIngredient, terme) {
+  const n = normaliser(nomIngredient);
+  let t = normaliser(terme);
+  if (t.length > 3 && /[sx]$/.test(t)) t = t.slice(0, -1);  // « courgettes » → « courgette »
+  return n.includes(t) && !(FAUX_AMIS[t] && FAUX_AMIS[t].test(n));
+}
+function recetteContient(r, terme) {
+  const t = normaliser(terme);
+  if (["poisson", "viande", "volaille"].includes(t)) return r.proteine === t;
+  return r.ingredients.some(([, , n]) => ingredientCorrespond(n, terme)) || ingredientCorrespond(r.nom, terme);
+}
+
+// Parmi des recettes possibles, garde celles qui utilisent le plus d'ingrédients déjà là
+let termesDisponibles = null;  // pendant une génération : ceux qui n'ont pas encore servi
+function preferer(recettes) {
+  const termes = termesDisponibles || dejaLa();
+  if (!termes.length || !recettes.length) return recettes;
+  const scores = recettes.map(r => termes.filter(t => recetteContient(r, t)).length);
+  const max = Math.max(...scores);
+  return max > 0 ? recettes.filter((_, i) => scores[i] === max) : recettes;
+}
+function marquerUtilises(r) {
+  if (termesDisponibles) termesDisponibles = termesDisponibles.filter(t => !recetteContient(r, t));
+}
+
+const dateJour = d => new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+
+function afficherPrefs() {
+  const puce = (liste, terme, texte, classe) => `<span class="puce ${classe}">${echapper(texte)}
+    <button data-pref="retirer" data-liste="${liste}" data-terme="${echapper(terme)}" aria-label="Retirer ${echapper(terme)}">×</button></span>`;
+  document.getElementById("puces-dejaLa").innerHTML = dejaLa().map(t => puce("dejaLa", t, t, "maison-puce")).join("");
+  document.getElementById("puces-aimePas").innerHTML = aimePas().map(t => puce("aimePas", t, t, "non-puce")).join("");
+  document.getElementById("puces-pasCetteSemaine").innerHTML = pasCetteSemaine()
+    .map(x => puce("pasCetteSemaine", x.terme, `${x.terme} · jusqu'au ${dateJour(x.jusqu)}`, "non-puce")).join("");
+  const nb = candidates().length;
+  document.getElementById("info-prefs").textContent =
+    `${nb} recette${nb > 1 ? "s" : ""} de saison possible${nb > 1 ? "s" : ""} avec vos réglages.` +
+    (nb < 10 ? " C'est peu : certains plats reviendront souvent." : "");
+  const resume = [dejaLa().length && `🏠 ${dejaLa().length}`, exclusions().length && `🚫 ${exclusions().length}`].filter(Boolean);
+  document.getElementById("resume-prefs").textContent = resume.length ? `(${resume.join(" · ")})` : "";
+}
+
+function ajouterPref(liste, saisie) {
+  const s = etat.reglages;
+  const termes = saisie.split(",").map(t => t.trim()).filter(Boolean);
+  for (const terme of termes) {
+    if (liste === "pasCetteSemaine") {
+      s.pasCetteSemaine = pasCetteSemaine().filter(x => normaliser(x.terme) !== normaliser(terme));
+      s.pasCetteSemaine.push({ terme, jusqu: new Date(Date.now() + SEPT_JOURS).toISOString() });
+    } else {
+      s[liste] = (s[liste] || []).filter(t => normaliser(t) !== normaliser(terme));
+      s[liste].push(terme);
+    }
+  }
+  sauver();
+  afficher();
+}
+
+function actionPref(bouton) {
+  const s = etat.reglages, { liste, terme } = bouton.dataset;
+  if (bouton.dataset.pref === "appliquer") { genererSemaine(); return; }
+  if (liste === "pasCetteSemaine") s.pasCetteSemaine = pasCetteSemaine().filter(x => x.terme !== terme);
+  else s[liste] = (s[liste] || []).filter(t => t !== terme);
+  sauver();
+  afficher();
+}
+
+function candidates() {
+  const s = etat.reglages, saison = saisonCourante(), exclus = exclusions();
+  return RECETTES.filter(r =>
+    r.saisons.includes(saison) &&
+    !(s.sansViande && (r.proteine === "viande" || r.proteine === "volaille")) &&
+    !(s.sansPoisson && r.proteine === "poisson") &&
+    !exclus.some(t => recetteContient(r, t)));
+}
+
+// Répartition cible des protéines sur la semaine
+function quotas(n) {
+  const s = etat.reglages;
+  const q = {
+    poisson:  s.sansPoisson ? 0 : Math.round(n * 0.25),
+    viande:   s.sansViande ? 0 : Math.round(n * 0.15),
+    volaille: s.sansViande ? 0 : Math.round(n * 0.2)
+  };
+  q.vegetarien = Math.max(0, n - q.poisson - q.viande - q.volaille);
+  return q;
+}
+
+// Choisit une recette pour un créneau, en relâchant les contraintes si besoin
+function choisirRecette(creneau, type, dejaPris, plaisirDejaPris, exclure, basePrecedente) {
+  const s = etat.reglages;
+  const pool = candidates().filter(r => r.nom !== exclure);
+  const tempsOk = r => creneau.jour >= 4 || r.temps <= s.tempsMax;
+  const plaisirOk = r => !r.plaisir || (s.plaisir && !plaisirDejaPris && creneau.jour >= 4);
+  const libre = r => !dejaPris.has(r.nom);
+  // Varier les sources de protéines végétales d'un repas à l'autre
+  const varie = r => !basePrecedente || baseVege(r) !== basePrecedente;
+  // La simplicité en semaine passe avant le type de protéine
+  const essais = [
+    r => r.proteine === type && varie(r) && libre(r) && tempsOk(r) && plaisirOk(r),
+    r => r.proteine === type && libre(r) && tempsOk(r) && plaisirOk(r),
+    r => libre(r) && tempsOk(r) && plaisirOk(r),
+    r => r.proteine === type && libre(r) && plaisirOk(r),
+    r => libre(r) && plaisirOk(r),
+    r => !r.plaisir,
+    () => true
+  ];
+  for (const filtre of essais) {
+    const choix = pool.filter(filtre);
+    if (choix.length) return aleatoire(preferer(choix));
+  }
+  return null;
+}
+
+// Plats proposés en batch cooking : prévus pour, se réchauffent bien, et repas complets
+const eligiblesBatch = () => candidates().filter(r => r.batch && !r.plaisir && analyseEquilibre(r).ok);
+
+// Répartit les repas des plats batch : un repas par jour (le dîner de préférence),
+// du lundi au vendredi d'abord, en alternant les plats d'un jour à l'autre
+function creneauxBatch(creneaux, nbPlats, nbRepas) {
+  const parJour = {};
+  for (const c of creneaux) if (!parJour[c.jour] || c.moment === "din") parJour[c.jour] = c;
+  const unParJour = Object.values(parJour).sort((a, b) => (a.jour > 4) - (b.jour > 4) || a.jour - b.jour);
+  const liste = [...unParJour, ...creneaux.filter(c => !unParJour.includes(c))];
+  const groupes = [];
+  for (let p = 0; p < nbPlats; p++) {
+    const g = [];
+    for (let k = 0; k < nbRepas; k++) if (liste[p + k * nbPlats]) g.push(liste[p + k * nbPlats]);
+    if (g.length >= 2) groupes.push(g.sort((a, b) => a.jour - b.jour));
+  }
+  return groupes;
+}
+
+const groupeBatch = cle => (etat.batch || []).find(b => b.cles.includes(cle) && etat.plan[cle] === b.nom);
+const groupeBatchDe = nom => (etat.batch || []).find(b => b.nom === nom && b.cles.some(k => etat.plan[k] === nom));
+
+function genererSemaine() {
+  archiverSemaine();
+  const creneaux = creneauxActifs();
+  const reste = quotas(creneaux.length);
+  const pris = new Set();
+  let plaisirPris = false, typePrecedent = null, basePrecedente = null;
+  etat.plan = {};
+  etat.batch = [];
+  etat.creee = new Date().toISOString();
+  termesDisponibles = [...dejaLa()];
+
+  // 1. Les plats batch d'abord, choisis selon les quotas de protéines
+  const [nbPlats, nbRepas] = (etat.reglages.batch || "0").split("x").map(Number);
+  for (const g of nbPlats ? creneauxBatch(creneaux, nbPlats, nbRepas) : []) {
+    const pool = eligiblesBatch().filter(r => !pris.has(r.nom));
+    const max = Math.max(...Object.values(reste));
+    const duType = pool.filter(r => reste[r.proteine] === max && max > 0);
+    const r = aleatoire(preferer(duType.length ? duType : pool));
+    if (!r) break;
+    marquerUtilises(r);
+    g.forEach(c => etat.plan[c.cle] = r.nom);
+    etat.batch.push({ nom: r.nom, cles: g.map(c => c.cle) });
+    pris.add(r.nom);
+    reste[r.proteine] = Math.max(0, reste[r.proteine] - g.length);
+  }
+
+  // 2. Les autres repas
+  for (const c of creneaux) {
+    if (etat.plan[c.cle]) continue;
+    // Type le plus « en retard » sur son quota, en évitant de répéter le précédent
+    let types = Object.keys(reste).filter(t => reste[t] > 0);
+    if (types.length > 1) types = types.filter(t => t !== typePrecedent);
+    const max = Math.max(...types.map(t => reste[t]));
+    const type = aleatoire(types.filter(t => reste[t] === max)) || "vegetarien";
+
+    const r = choisirRecette(c, type, pris, plaisirPris, null, basePrecedente);
+    if (!r) continue;
+    marquerUtilises(r);
+    basePrecedente = baseVege(r);
+    etat.plan[c.cle] = r.nom;
+    pris.add(r.nom);
+    if (r.plaisir) plaisirPris = true;
+    if (reste[r.proteine] > 0) reste[r.proteine]--; else reste[type]--;
+    typePrecedent = r.proteine;
+  }
+  termesDisponibles = null;
+  viderCoches();
+  sauver();
+  afficher();
+}
+
+function changerRecette(cle) {
+  // Un plat batch est remplacé par un autre plat batch, sur tous ses repas
+  const groupe = groupeBatch(cle);
+  if (groupe) {
+    const pris = new Set(Object.values(etat.plan));
+    const r = aleatoire(preferer(eligiblesBatch().filter(r => !pris.has(r.nom))));
+    if (!r) return;
+    groupe.cles.forEach(k => { if (etat.plan[k] === groupe.nom) etat.plan[k] = r.nom; });
+    groupe.nom = r.nom;
+    sauver(); afficher();
+    return;
+  }
+  const [jour, moment] = cle.split("-");
+  const actuelle = recetteParNom(etat.plan[cle]);
+  const autres = Object.entries(etat.plan).filter(([k]) => k !== cle).map(([, n]) => recetteParNom(n)).filter(Boolean);
+  const pris = new Set(autres.map(r => r.nom));
+  const plaisirPris = autres.some(r => r.plaisir);
+  const r = choisirRecette({ jour: +jour, moment }, actuelle ? actuelle.proteine : "vegetarien", pris, plaisirPris, actuelle && actuelle.nom);
+  if (r) { etat.plan[cle] = r.nom; sauver(); afficher(); }
+}
+
+// ------------------------------------------------------------------ quantités
+const FRACTIONS = { 0.25: "¼", 0.5: "½", 0.75: "¾" };
+function joliNombre(x) {
+  const q = Math.round(x * 4) / 4;
+  const entier = Math.floor(q), reste = q - entier;
+  if (reste === 0) return String(entier || "¼");
+  return (entier ? entier : "") + FRACTIONS[reste];
+}
+function pluriel(unite, n) { return n > 1 && unite && !unite.endsWith("s") ? unite + "s" : unite; }
+
+// Quantité affichée dans une recette (pour le nombre de personnes choisi)
+function formatRecette(qte, unite, nom, repas = 1) {
+  if (!qte) return nom;
+  const total = qte * etat.reglages.personnes * repas;
+  if (unite === "g" || unite === "ml") return `${Math.round(total / 5) * 5} ${unite} ${nom}`;
+  if (unite === "") return `${joliNombre(total)} ${nom}`;
+  return `${joliNombre(total)} ${pluriel(unite, total)} de ${nom}`;
+}
+
+// Quantité affichée dans la liste de courses (arrondie à l'achat)
+function formatCourses(qte, unite) {
+  if (!qte) return "un peu";
+  if (unite === "g") return qte >= 1000 ? `${(Math.ceil(qte / 100) / 10).toString().replace(".", ",")} kg` : `${Math.ceil(qte / 10) * 10} g`;
+  if (unite === "ml") return qte >= 1000 ? `${(Math.ceil(qte / 100) / 10).toString().replace(".", ",")} L` : `${Math.ceil(qte / 10) * 10} ml`;
+  const n = Math.ceil(qte - 0.001);
+  return unite ? `${n} ${pluriel(unite, n)}` : `× ${n}`;
+}
+
+function listeDeCourses() {
+  const p = etat.reglages.personnes, totaux = {};
+  for (const nom of Object.values(etat.plan)) {
+    const r = recetteParNom(nom);
+    if (!r) continue;
+    for (const [qte, unite, ing] of r.ingredients) {
+      const cle = ing + "|" + unite;
+      totaux[cle] = totaux[cle] || { ing, unite, qte: 0 };
+      totaux[cle].qte += qte * p;
+    }
+  }
+  const parRayon = {}, maison = dejaLa();
+  for (const t of Object.values(totaux)) {
+    const rayon = maison.some(m => ingredientCorrespond(t.ing, m)) ? RAYON_MAISON : RAYON_DE[t.ing] || "Divers";
+    (parRayon[rayon] = parRayon[rayon] || []).push(t);
+  }
+  for (const l of Object.values(parRayon)) l.sort((a, b) => a.ing.localeCompare(b.ing, "fr"));
+  return [RAYON_MAISON, ...ORDRE_RAYONS].filter(r => parRayon[r]).map(r => ({ rayon: r, items: parRayon[r] }));
+}
+
+// ------------------------------------------------------------------ affichage
+const echapper = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function afficher() {
+  const saison = saisonCourante();
+  document.getElementById("info-saison").innerHTML =
+    `Saison : <b>${NOMS_SAISONS[saison]}</b> — ${PRODUITS_SAISON[saison]}`;
+  afficherPrefs();
+  afficherBandeauBatch();
+  afficherJours();
+  afficherEquilibre();
+  afficherCourses();
+  afficherRecettesImpression();
+}
+
+function etiquette(r) {
+  const b = baseVege(r);
+  return b ? `${BASES[b].emoji} ${BASES[b].label}` : `${TYPES[r.proteine].emoji} ${TYPES[r.proteine].label}`;
+}
+
+const nomCreneau = cle => { const [j, m] = cle.split("-"); return `${JOURS[j].toLowerCase()} ${m === "din" ? "soir" : "midi"}`; };
+
+function afficherBandeauBatch() {
+  const groupes = (etat.batch || []).map(b => ({ ...b, cles: b.cles.filter(k => etat.plan[k] === b.nom) }))
+    .filter(b => b.cles.length);
+  document.getElementById("bandeau-batch").innerHTML = groupes.length ? `<div class="bandeau">
+    <b>🍱 À cuisiner le dimanche</b> (≈ ${groupes.reduce((t, b) => t + recetteParNom(b.nom).temps, 0)} min au total) :
+    <ul style="margin:6px 0 0">${groupes.map(b => `<li><span class="nom" data-voir="${echapper(b.nom)}">${echapper(b.nom)}</span>
+      — ${b.cles.length} repas : ${b.cles.map(nomCreneau).join(", ")}</li>`).join("")}</ul></div>` : "";
+}
+
+function afficherJours() {
+  const exclus = exclusions(), maison = dejaLa();
+  const html = JOURS.map((nomJour, j) => {
+    let actifs = 0;
+    const blocs = ["dej", "din"].map(m => {
+      const cle = `${j}-${m}`;
+      const r = recetteParNom(etat.plan[cle]);
+      // Créneau non prévu : zone de dépôt visible seulement pendant un déplacement
+      if (!etat.reglages.repas[j][m]) return `<div class="repas depot" data-cible="${cle}">${MOMENTS[m]} non prévu · glissez un repas ici</div>`;
+      actifs++;
+      if (!r) return `<div class="repas vide" data-cible="${cle}"><div class="moment">${MOMENTS[m]}</div>Cliquez sur « Générer »</div>`;
+      const groupe = groupeBatch(cle);
+      const badge = groupe ? `<span class="badge-batch">🍱 Batch ${groupe.cles.indexOf(cle) + 1}/${groupe.cles.length}</span>` : "";
+      const duree = groupe ? "⏱ 5 min (à réchauffer)" : `⏱ ${r.temps} min`;
+      const aEviter = exclus.filter(t => recetteContient(r, t));
+      const utilise = maison.filter(t => recetteContient(r, t));
+      return `<div class="repas ${r.proteine}${glisse.selection === cle ? " selectionne" : ""}" data-cle="${cle}" data-cible="${cle}">
+        <div class="moment"><button class="poignee" data-poignee="${cle}" title="Glisser pour déplacer (ou toucher puis toucher un autre repas)" aria-label="Déplacer ce repas">⠿</button>${MOMENTS[m]}${badge}</div>
+        <span class="nom" data-voir="${echapper(r.nom)}">${echapper(r.nom)}</span>
+        ${aEviter.length ? `<div class="alerte">⚠️ Contient ${echapper(aEviter.join(", "))} : cliquez sur 🔄</div>` : ""}
+        ${utilise.length ? `<div class="maison">🏠 Utilise : ${echapper(utilise.join(", "))}</div>` : ""}
+        <div class="infos">
+          <span>${etiquette(r)} · ${duree}${r.plaisir ? " · ⭐ plaisir" : ""}</span>
+          <button data-changer="${cle}" title="Proposer une autre recette" aria-label="Proposer une autre recette">🔄</button>
+        </div></div>`;
+    }).join("");
+    return `<div class="jour${actifs ? "" : " sans-repas"}"><h3>${nomJour}</h3>${blocs}</div>`;
+  }).join("");
+  document.getElementById("jours").innerHTML = html;
+  document.getElementById("aide-deplacer").hidden = !glisse.selection;
+}
+
+// ------------------------------------------------------------------ déplacer les repas
+// Échange deux repas, ou déplace un repas vers un créneau non prévu
+// (le créneau d'arrivée est alors ajouté, celui de départ retiré).
+function deplacerRepas(source, cible) {
+  if (!source || !cible || source === cible || !etat.plan[source]) return;
+  const a = etat.plan[source], b = etat.plan[cible];
+  etat.plan[cible] = a;
+  if (b) etat.plan[source] = b; else delete etat.plan[source];
+  const [jc, mc] = cible.split("-");
+  etat.reglages.repas[jc][mc] = true;
+  if (!b) { const [js, ms] = source.split("-"); etat.reglages.repas[js][ms] = false; }
+  const ordre = k => { const [j, m] = k.split("-"); return +j * 2 + (m === "din"); };
+  for (const g of etat.batch || []) {
+    g.cles = g.cles.map(k => k === source ? cible : k === cible && b ? source : k)
+      .filter(k => etat.plan[k] === g.nom).sort((x, y) => ordre(x) - ordre(y));
+  }
+  remplirReglages();
+  sauver();
+  afficher();
+}
+
+// Glisser avec la souris ou le doigt (par la poignée ⠿) ; un simple toucher
+// sélectionne le repas, un second toucher sur un autre repas fait l'échange.
+const glisse = { selection: null, enCours: null };
+
+function finirGlisse() {
+  const g = glisse.enCours;
+  if (g && g.fantome) g.fantome.remove();
+  document.querySelectorAll(".survol").forEach(el => el.classList.remove("survol"));
+  glisse.enCours = null;
+  document.body.classList.toggle("en-glisse", !!glisse.selection);
+}
+function cibleSous(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el && el.closest("[data-cible]");
+}
+
+document.addEventListener("pointerdown", e => {
+  const poignee = e.target.closest("[data-poignee]");
+  if (!poignee || e.button > 0) return;
+  e.preventDefault();
+  poignee.setPointerCapture(e.pointerId);
+  glisse.enCours = { cle: poignee.dataset.poignee, x: e.clientX, y: e.clientY, bouge: false, fantome: null,
+                     carte: poignee.closest(".repas") };
+});
+document.addEventListener("pointermove", e => {
+  const g = glisse.enCours;
+  if (!g) return;
+  if (!g.bouge && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 6) return;
+  if (!g.bouge) {
+    g.bouge = true;
+    const rect = g.carte.getBoundingClientRect();
+    g.fantome = g.carte.cloneNode(true);
+    g.fantome.className += " fantome";
+    g.fantome.style.width = rect.width + "px";
+    g.decalX = g.x - rect.left; g.decalY = g.y - rect.top;
+    document.body.appendChild(g.fantome);
+    document.body.classList.add("en-glisse");
+  }
+  g.fantome.style.left = e.clientX - g.decalX + "px";
+  g.fantome.style.top = e.clientY - g.decalY + "px";
+  document.querySelectorAll(".survol").forEach(el => el.classList.remove("survol"));
+  const cible = cibleSous(e.clientX, e.clientY);
+  if (cible && cible.dataset.cible !== g.cle) cible.classList.add("survol");
+  // Défilement automatique près des bords (utile sur téléphone)
+  if (e.clientY < 70) window.scrollBy(0, -14);
+  else if (e.clientY > innerHeight - 110) window.scrollBy(0, 14);
+});
+document.addEventListener("pointerup", e => {
+  const g = glisse.enCours;
+  if (!g) return;
+  if (g.bouge) {
+    const cible = cibleSous(e.clientX, e.clientY);
+    glisse.selection = null;
+    finirGlisse();
+    if (cible) deplacerRepas(g.cle, cible.dataset.cible); else afficherJours();
+    return;
+  }
+  // Simple toucher : sélection, puis échange au toucher suivant
+  if (glisse.selection && glisse.selection !== g.cle) {
+    const source = glisse.selection;
+    glisse.selection = null;
+    finirGlisse();
+    deplacerRepas(source, g.cle);
+  } else {
+    glisse.selection = glisse.selection === g.cle ? null : g.cle;
+    finirGlisse();
+    afficherJours();
+  }
+});
+document.addEventListener("pointercancel", () => { finirGlisse(); afficherJours(); });
+
+function afficherEquilibre() {
+  const recettes = Object.values(etat.plan).map(recetteParNom).filter(Boolean);
+  const compte = {};
+  recettes.forEach(r => compte[r.proteine] = (compte[r.proteine] || 0) + 1);
+  const plaisirs = recettes.filter(r => r.plaisir).length;
+  document.getElementById("equilibre").innerHTML =
+    Object.entries(TYPES).filter(([t]) => compte[t]).map(([t, info]) =>
+      `<span class="pastille p-${t}">${info.emoji} ${info.label} × ${compte[t]}</span>`).join("") +
+    (plaisirs ? `<span class="pastille p-plaisir">⭐ Plaisir × ${plaisirs}</span>` : "");
+
+  const bases = {};
+  recettes.map(baseVege).filter(Boolean).forEach(b => bases[b] = (bases[b] || 0) + 1);
+  const detail = Object.entries(BASES).filter(([b]) => bases[b])
+    .map(([b, info]) => `${info.emoji} ${info.label.toLowerCase()} × ${bases[b]}`).join(", ");
+  const vege = etat.reglages.sansViande && etat.reglages.sansPoisson;
+  document.getElementById("reperes").textContent = vege
+    ? `Plats végétariens : ${detail || "—"}. Repères : des légumineuses (lentilles, pois chiches, haricots, tofu) au moins un repas sur deux, associées à une céréale (riz, pâtes, semoule, pain) ; œufs et fromage en complément ; des légumes à chaque repas.`
+    : `Repères : poisson ~2 fois par semaine, viande rouge limitée, beaucoup de repas végétariens${detail ? " (" + detail + ")" : ""}, des légumes à chaque repas.`;
+}
+
+function afficherCourses() {
+  const liste = listeDeCourses();
+  const el = document.getElementById("courses");
+  if (!liste.length) { el.innerHTML = "<h2>🛒 Liste de courses</h2><p class='astuce'>Générez une semaine pour obtenir la liste.</p>"; return; }
+  const masquer = prefLocale("masquer") === "1";
+  el.classList.toggle("masquer", masquer);
+  el.innerHTML = `<h2>🛒 Liste de courses <small class="astuce">(${etat.reglages.personnes} pers.)</small></h2>
+    <div class="options-courses"><span id="compteur-courses"></span>
+      <label><input type="checkbox" id="masquer-coches" ${masquer ? "checked" : ""}> Masquer les articles cochés</label></div>` +
+    liste.map(({ rayon, items }) => `<h4>${rayon}</h4><ul>` + items.map(t => {
+      const id = t.ing + "|" + t.unite, coche = etat.coches[id];
+      const qte = rayon.startsWith("Placard") ? "" : formatCourses(t.qte, t.unite);
+      return `<li class="${coche ? "coche" : ""}"><label><input type="checkbox" data-coche="${echapper(id)}" ${coche ? "checked" : ""}>
+        <span>${echapper(t.ing)}</span><span class="qte">${qte}</span></label></li>`;
+    }).join("") + "</ul>").join("");
+  compterReste();
+}
+
+// Nombre d'articles restant à acheter (affiché dans l'onglet Courses sur téléphone)
+function compterReste() {
+  const cases = [...document.querySelectorAll("[data-coche]")];
+  const reste = cases.filter(c => !c.checked).length;
+  const compteur = document.getElementById("compteur-courses");
+  if (compteur) compteur.textContent = reste ? `${reste} article${reste > 1 ? "s" : ""} à acheter` : "✅ Tout est acheté";
+  document.getElementById("reste-courses").textContent = cases.length ? `(${reste})` : "";
+}
+
+function htmlEquilibre(r) {
+  const a = analyseEquilibre(r);
+  return `<div class="encadre">✅ <b>Repas complet</b> — protéines : ${echapper(a.proteines.join(", "))} ·
+    féculents : ${echapper(a.feculents.join(", "))} · légumes : ${echapper(a.legumes.join(", "))}
+    (≈ ${Math.round(a.poidsLegumes / 10) * 10} g par personne)</div>`;
+}
+
+function htmlRecette(r) {
+  const groupe = groupeBatchDe(r.nom);
+  const repas = groupe ? groupe.cles.filter(k => etat.plan[k] === r.nom).length : 1;
+  const p = etat.reglages.personnes;
+  return `<h2>${echapper(r.nom)}</h2>
+    <p class="astuce">${etiquette(r)} · ⏱ ${r.temps} min · pour ${groupe ? `${repas} repas × ${p} pers. = ${repas * p} portions` : p + " pers."}${r.plaisir ? " · ⭐ plat plaisir" : ""}</p>
+    ${groupe ? `<div class="encadre batch">🍱 <b>Batch cooking</b> : cuisinez tout le dimanche, en une fois (quantités ci-dessous pour ${repas} repas).
+      Laissez refroidir, répartissez en ${repas} boîtes hermétiques et rangez-les au réfrigérateur.
+      Se conserve 3 jours au frais : congelez les portions prévues au-delà et sortez-les du congélateur la veille.
+      Le jour J, réchauffez 5 min (casserole ou micro-ondes) jusqu'à ce que ce soit bien chaud.</div>
+      <p class="astuce">Servi : ${groupe.cles.filter(k => etat.plan[k] === r.nom).map(nomCreneau).join(", ")}</p>
+      ${htmlEquilibre(r)}` : ""}
+    <h3>Ingrédients</h3>
+    <ul>${r.ingredients.map(([q, u, n]) => `<li>${echapper(formatRecette(q, u, n, repas))}</li>`).join("")}</ul>
+    <h3>Préparation</h3>
+    <ol>${r.etapes.map(e => `<li>${echapper(e)}</li>`).join("")}</ol>`;
+}
+
+function afficherRecettesImpression() {
+  const noms = [...new Set(Object.values(etat.plan))];
+  document.getElementById("recettes-impression").innerHTML =
+    noms.map(recetteParNom).filter(Boolean).map(r => `<div class="recette-imprimee">${htmlRecette(r)}</div>`).join("");
+}
+
+function ouvrirRecette(nom) {
+  const r = recetteParNom(nom);
+  if (!r) return;
+  document.getElementById("modale-contenu").innerHTML = htmlRecette(r) +
+    `<p style="text-align:right"><button data-fermer>Fermer</button></p>`;
+  document.getElementById("modale").classList.add("ouverte");
+}
+
+function texteListe() {
+  return listeDeCourses().map(({ rayon, items }) => `— ${rayon} —\n` + items
+    .filter(t => !etat.coches[t.ing + "|" + t.unite])
+    .map(t => `☐ ${t.ing}${rayon.startsWith("Placard") ? "" : " : " + formatCourses(t.qte, t.unite)}`).join("\n")
+  ).join("\n\n");
+}
+
+// Copie dans le presse-papiers (à appeler directement depuis un clic)
+async function copier(texte) {
+  try { await navigator.clipboard.writeText(texte); return true; }
+  catch (e) {
+    // Repli pour les navigateurs qui bloquent le presse-papiers
+    const zone = document.createElement("textarea");
+    zone.value = texte; document.body.appendChild(zone); zone.select();
+    const ok = document.execCommand("copy");
+    zone.remove();
+    return ok;
+  }
+}
+
+// ------------------------------------------------------------------ historique des semaines
+const MAX_ARCHIVES = 12;
+const dateCourte = iso => new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+// Range la semaine en cours dans l'historique (sans doublon)
+function archiverSemaine() {
+  if (!Object.keys(etat.plan).length) return false;
+  etat.archives = etat.archives || [];
+  const signature = JSON.stringify(etat.plan);
+  if (etat.archives.some(a => JSON.stringify(a.plan) === signature)) return false;
+  etat.archives.unshift({ id: Date.now(), creee: etat.creee || new Date().toISOString(),
+                          plan: { ...etat.plan }, batch: etat.batch || [] });
+  etat.archives = etat.archives.slice(0, MAX_ARCHIVES);
+  sauver();
+  return true;
+}
+
+function ouvrirArchives() {
+  const archives = etat.archives || [];
+  document.getElementById("modale-contenu").innerHTML = `<div class="archives">
+    <h2>📚 Mes semaines</h2>
+    <p class="astuce">La semaine en cours est enregistrée automatiquement à chaque modification. Quand vous générez
+      une nouvelle semaine, l'ancienne est rangée ici (${MAX_ARCHIVES} dernières semaines).
+      Ces données restent dans ce navigateur : pour consulter les recettes sur votre téléphone, utilisez « 📱 Emporter la semaine ».</p>
+    <button data-archive="enregistrer">💾 Enregistrer la semaine actuelle dans l'historique</button>
+    <p class="erreur" id="archive-message" style="color:var(--vert)"></p>
+    ${archives.length ? `<ul>${archives.map(a => {
+      const plats = [...new Set(Object.values(a.plan))];
+      return `<li><div><b>Semaine créée le ${dateCourte(a.creee)}</b><br>
+        <span class="astuce">${Object.keys(a.plan).length} repas · ${echapper(plats.slice(0, 3).join(" · "))}${plats.length > 3 ? "…" : ""}</span></div>
+        <button data-archive="rouvrir" data-id="${a.id}">Rouvrir</button>
+        <button data-archive="supprimer" data-id="${a.id}" title="Supprimer">🗑️</button></li>`;
+    }).join("")}</ul>` : `<p class="astuce">Aucune semaine enregistrée pour l'instant.</p>`}
+    <p style="text-align:right"><button data-fermer>Fermer</button></p></div>`;
+  document.getElementById("modale").classList.add("ouverte");
+}
+
+function actionArchive(action, id) {
+  if (action === "enregistrer") {
+    const ok = archiverSemaine();
+    ouvrirArchives();
+    document.getElementById("archive-message").textContent = ok ? "✅ Semaine enregistrée." : "Cette semaine est déjà dans l'historique.";
+    return;
+  }
+  const archive = etat.archives.find(a => a.id === id);
+  if (!archive) return;
+  if (action === "rouvrir") {
+    archiverSemaine();
+    etat.plan = { ...archive.plan };
+    etat.batch = archive.batch || [];
+    etat.creee = archive.creee;
+    viderCoches();
+    // Les créneaux de la semaine rouverte redeviennent actifs
+    for (const cle of Object.keys(etat.plan)) {
+      const [j, m] = cle.split("-");
+      etat.reglages.repas[j][m] = true;
+    }
+    etat.archives = etat.archives.filter(a => a.id !== id);
+    sauver();
+    document.querySelectorAll("[data-repas]").forEach(c => {
+      const [j, m] = c.dataset.repas.split("-");
+      c.checked = etat.reglages.repas[j][m];
+    });
+    afficher();
+    document.getElementById("modale").classList.remove("ouverte");
+  } else if (action === "supprimer") {
+    etat.archives = etat.archives.filter(a => a.id !== id);
+    sauver();
+    ouvrirArchives();
+  }
+}
+
+// ------------------------------------------------------------------ emporter la semaine
+// Crée un fichier HTML autonome (menu + liste à cocher + recettes) à ouvrir
+// sur le téléphone, même sans connexion.
+const titreSemaine = () => `Semaine du ${new Date(etat.creee || Date.now()).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+
+function fichierSemaine() {
+  const recettes = [...new Set(Object.values(etat.plan))].map(recetteParNom).filter(Boolean);
+  const ancre = nom => "r" + recettes.findIndex(r => r.nom === nom);
+  const menu = JOURS.map((nomJour, j) => {
+    const lignes = ["dej", "din"].filter(m => etat.plan[`${j}-${m}`]).map(m => {
+      const cle = `${j}-${m}`, nom = etat.plan[cle], g = groupeBatch(cle);
+      return `<li><small>${MOMENTS[m]}</small> <a href="#${ancre(nom)}">${echapper(nom)}</a>${g ? " <em>🍱 à réchauffer</em>" : ""}</li>`;
+    });
+    return lignes.length ? `<h3>${nomJour}</h3><ul>${lignes.join("")}</ul>` : "";
+  }).join("");
+  const batch = (etat.batch || []).filter(b => b.cles.some(k => etat.plan[k] === b.nom));
+  const courses = listeDeCourses().map(({ rayon, items }) => `<h3>${rayon}</h3>` + items.map(t => {
+    const id = t.ing + "|" + t.unite;
+    const qte = rayon.startsWith("Placard") ? "à vérifier" : formatCourses(t.qte, t.unite);
+    return `<label class="article"><input type="checkbox" data-id="${echapper(id)}" ${etat.coches[id] ? "checked" : ""}>
+      <span>${echapper(t.ing)}</span><span class="qte">${qte}</span></label>`;
+  }).join("")).join("");
+  const id = "courses-" + (etat.creee || Date.now());
+
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${titreSemaine()}</title>
+<style>
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f5f0; color: #2b2b2b; line-height: 1.45; }
+  header { background: #3f7d4e; color: #fff; padding: 12px 16px; position: sticky; top: 0; z-index: 1; }
+  header h1 { margin: 0 0 6px; font-size: 1.2rem; }
+  nav { display: flex; gap: 8px; }
+  nav a { color: #fff; background: rgba(255,255,255,.18); padding: 6px 10px; border-radius: 8px; text-decoration: none; font-size: .95rem; }
+  section, article { background: #fff; margin: 12px; padding: 12px 16px; border-radius: 12px; border: 1px solid #e4e0d8; }
+  h2 { margin-top: 0; } h3 { color: #3f7d4e; font-size: 1rem; margin: 14px 0 4px; }
+  .article { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid #eee; font-size: 1.05rem; }
+  .article input { width: 22px; height: 22px; }
+  .article .qte { margin-left: auto; color: #6b6b6b; white-space: nowrap; }
+  .article input:checked ~ span { text-decoration: line-through; color: #aaa; }
+  .astuce { font-size: .85rem; color: #6b6b6b; }
+  .encadre { background: #e5f1e7; border-radius: 10px; padding: 8px 12px; font-size: .9rem; margin: 10px 0; }
+  .encadre.batch { background: #fdf0e6; }
+  ul { padding-left: 20px; } a { color: #c8642a; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #e4e0d8; background: #fff; margin-top: 10px; }
+</style></head><body>
+<header><h1>🥕 ${titreSemaine()}</h1>
+  <nav><a href="#courses">🛒 Courses</a><a href="#menu">📅 Menu</a><a href="#recettes">📖 Recettes</a></nav></header>
+<section id="courses"><h2>🛒 Liste de courses <small class="astuce">(${etat.reglages.personnes} pers.)</small></h2>
+  <p class="astuce">Cochez au fur et à mesure : les cases restent cochées sur ce téléphone.</p>
+  ${courses}<button id="raz">Tout décocher</button></section>
+<section id="menu"><h2>📅 Menu</h2>
+  ${batch.length ? `<p class="encadre batch">🍱 <b>À cuisiner le dimanche</b> : ${batch.map(b => `<a href="#${ancre(b.nom)}">${echapper(b.nom)}</a>`).join(", ")}</p>` : ""}
+  ${menu}</section>
+<div id="recettes">${recettes.map(r => `<article id="${ancre(r.nom)}">${htmlRecette(r)}<p><a href="#menu">↑ Retour au menu</a></p></article>`).join("")}</div>
+<script>
+  const CLE = ${JSON.stringify(id)};
+  let coches = {};
+  try { coches = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) {}
+  const cases = document.querySelectorAll("[data-id]");
+  cases.forEach(c => {
+    if (c.dataset.id in coches) c.checked = coches[c.dataset.id];
+    c.addEventListener("change", () => {
+      coches[c.dataset.id] = c.checked;
+      try { localStorage.setItem(CLE, JSON.stringify(coches)); } catch (e) {}
+    });
+  });
+  document.getElementById("raz").addEventListener("click", () => {
+    cases.forEach(c => { c.checked = false; coches[c.dataset.id] = false; });
+    try { localStorage.setItem(CLE, JSON.stringify(coches)); } catch (e) {}
+  });
+<\/script>
+</body></html>`;
+}
+
+// En ligne, le fichier passe par la fenêtre d'enregistrement de Claude ;
+// en local, par un téléchargement (ou le menu de partage du téléphone).
+let telechargements = null;
+
+async function emporterSemaine() {
+  if (!Object.keys(etat.plan).length) return;
+  const nomFichier = `${titreSemaine()}.html`;
+  const contenu = fichierSemaine();
+  let resultat = "telecharge";
+  if (window.claude) {
+    if (!telechargements) return;
+    try { await telechargements.save({ filename: nomFichier, data: contenu }); }
+    catch (e) { return; /* refusé ou indisponible : rien à afficher */ }
+  } else {
+    const fichier = new File([contenu], nomFichier, { type: "text/html" });
+    if (matchMedia("(pointer: coarse)").matches && navigator.canShare && navigator.canShare({ files: [fichier] })) {
+      try { await navigator.share({ files: [fichier], title: titreSemaine() }); resultat = "partage"; } catch (e) {}
+    }
+    if (resultat !== "partage") {
+      const lien = document.createElement("a");
+      lien.href = URL.createObjectURL(fichier);
+      lien.download = nomFichier;
+      document.body.appendChild(lien); lien.click(); lien.remove();
+      setTimeout(() => URL.revokeObjectURL(lien.href), 5000);
+    }
+  }
+  document.getElementById("modale-contenu").innerHTML = `<h2>📱 Version hors connexion prête</h2>
+    <p>Le fichier <b>${echapper(nomFichier)}</b> ${resultat === "partage" ? "a été partagé" : "est dans vos Téléchargements"}.
+      Il contient la <b>liste de courses à cocher</b>, le <b>menu</b> et <b>toutes les recettes</b>, et s'ouvre sans connexion,
+      pratique dans un magasin où le réseau passe mal.</p>
+    <p class="astuce">Les coches faites dans ce fichier restent sur le téléphone qui l'a ouvert.
+      Pour cocher à plusieurs en direct, utilisez plutôt la page en ligne.</p>
+    <p style="text-align:right"><button data-fermer>Fermer</button></p>`;
+  document.getElementById("modale").classList.add("ouverte");
+}
+
+// ------------------------------------------------------------------ réglages
+const champ = id => document.getElementById(id);
+
+// Affiche les réglages en cours (au démarrage et quand un autre appareil les change)
+function remplirReglages() {
+  const s = etat.reglages;
+  champ("r-personnes").value = s.personnes;
+  champ("r-saison").value = s.saison;
+  champ("r-temps").value = s.tempsMax;
+  champ("r-plaisir").checked = s.plaisir;
+  champ("r-batch").value = s.batch || "0";
+  champ("r-regime").value = s.sansViande ? (s.sansPoisson ? "vegetarien" : "pescetarien") : "omnivore";
+  champ("r-repas").innerHTML = `<tr><th></th><th>Déj.</th><th>Dîner</th></tr>` + JOURS.map((j, i) =>
+    `<tr><td style="text-align:left">${j}</td>
+      <td><input type="checkbox" data-repas="${i}-dej" aria-label="${j} déjeuner" ${s.repas[i].dej ? "checked" : ""}></td>
+      <td><input type="checkbox" data-repas="${i}-din" aria-label="${j} dîner" ${s.repas[i].din ? "checked" : ""}></td></tr>`).join("");
+}
+
+function lierReglages() {
+  champ("r-personnes").addEventListener("input", e => {
+    const n = parseInt(e.target.value, 10);
+    if (n >= 1) { etat.reglages.personnes = n; sauver(); afficher(); }
+  });
+  champ("r-saison").addEventListener("change", e => { etat.reglages.saison = e.target.value; sauver(); afficher(); });
+  champ("r-temps").addEventListener("change", e => { etat.reglages.tempsMax = +e.target.value; sauver(); });
+  champ("r-plaisir").addEventListener("change", e => { etat.reglages.plaisir = e.target.checked; sauver(); });
+  champ("r-batch").addEventListener("change", e => { etat.reglages.batch = e.target.value; genererSemaine(); });
+  // Changer de régime régénère la semaine pour retirer les plats exclus
+  champ("r-regime").addEventListener("change", e => {
+    etat.reglages.sansViande = e.target.value !== "omnivore";
+    etat.reglages.sansPoisson = e.target.value === "vegetarien";
+    genererSemaine();
+  });
+  champ("r-repas").addEventListener("change", e => {
+    const [j, m] = e.target.dataset.repas.split("-");
+    etat.reglages.repas[j][m] = e.target.checked;
+    if (!e.target.checked) delete etat.plan[`${j}-${m}`];
+    (etat.batch || []).forEach(b => b.cles = b.cles.filter(k => k !== `${j}-${m}`));
+    sauver(); afficher();
+  });
+}
+
+// ------------------------------------------------------------------ affichage téléphone
+// Préférences propres à chaque appareil : onglet affiché, articles cochés masqués
+function prefLocale(cle, valeur) {
+  try {
+    if (valeur === undefined) return localStorage.getItem("menu-pref-" + cle);
+    localStorage.setItem("menu-pref-" + cle, valeur);
+  } catch (e) { return null; }
+}
+function choisirVue(vue) {
+  document.body.dataset.vue = vue;
+  document.querySelectorAll(".onglets button").forEach(b => b.setAttribute("aria-pressed", b.dataset.vue === vue));
+  prefLocale("vue", vue);
+  window.scrollTo(0, 0);
+}
+
+// ------------------------------------------------------------------ événements
+document.getElementById("btn-generer").addEventListener("click", genererSemaine);
+document.getElementById("btn-imprimer").addEventListener("click", () => window.print());
+document.getElementById("btn-copier").addEventListener("click", async e => {
+  e.target.textContent = (await copier(texteListe())) ? "✅ Liste copiée !" : "❌ Copie impossible";
+  setTimeout(() => e.target.textContent = "📋 Copier la liste de courses", 2000);
+});
+document.getElementById("btn-emporter").addEventListener("click", emporterSemaine);
+document.getElementById("btn-archives").addEventListener("click", ouvrirArchives);
+document.getElementById("btn-foyer").addEventListener("click", ouvrirFoyer);
+// Ouvrir le lien d'un autre foyer alors que la page est déjà ouverte
+addEventListener("hashchange", () => {
+  const m = location.hash.match(/^#foyer-([a-z0-9]{20,})$/);
+  if (m && m[1] !== partage.foyer) location.reload();
+});
+
+// Préférences d'ingrédients : suggestions tirées de la base de recettes
+document.getElementById("liste-ingredients").innerHTML =
+  [...new Set(RECETTES.flatMap(r => r.ingredients.map(([, , n]) => n)))]
+    .filter(n => !RAYONS["Placard (à vérifier)"].includes(n))
+    .sort((a, b) => a.localeCompare(b, "fr"))
+    .map(n => `<option value="${echapper(n)}">`).join("");
+document.querySelectorAll("form[data-liste]").forEach(f => f.addEventListener("submit", e => {
+  e.preventDefault();
+  const saisie = f.querySelector("input");
+  if (!saisie.value.trim()) return;
+  ajouterPref(f.dataset.liste, saisie.value);
+  saisie.value = "";
+  saisie.focus();
+}));
+
+document.addEventListener("click", e => {
+  const depot = e.target.closest(".depot");
+  if (depot && glisse.selection) {
+    const source = glisse.selection;
+    glisse.selection = null;
+    finirGlisse();
+    deplacerRepas(source, depot.dataset.cible);
+    return;
+  }
+  const t = e.target.closest("button, [data-voir], .modale") || e.target;
+  if (t.dataset.annulerSelection !== undefined) { glisse.selection = null; finirGlisse(); afficherJours(); }
+  else if (t.dataset.pref) actionPref(t);
+  else if (t.dataset.vue) choisirVue(t.dataset.vue);
+  else if (t.dataset.archive) actionArchive(t.dataset.archive, +t.dataset.id);
+  else if (t.dataset.changer) changerRecette(t.dataset.changer);
+  else if (t.dataset.voir) ouvrirRecette(t.dataset.voir);
+  else if (t.dataset.fermer !== undefined || e.target.id === "modale") document.getElementById("modale").classList.remove("ouverte");
+});
+document.addEventListener("change", e => {
+  if (e.target.id === "masquer-coches") {
+    prefLocale("masquer", e.target.checked ? "1" : "");
+    document.getElementById("courses").classList.toggle("masquer", e.target.checked);
+    return;
+  }
+  const id = e.target.dataset.coche;
+  if (id === undefined) return;
+  changerCoche(id, e.target.checked);
+  e.target.closest("li").classList.toggle("coche", e.target.checked);
+  compterReste();
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  document.getElementById("modale").classList.remove("ouverte");
+  if (glisse.selection) { glisse.selection = null; finirGlisse(); afficherJours(); }
+});
+
+// En ligne, l'impression est bloquée par le cadre de la page : on retire le bouton
+if (window.claude) document.getElementById("btn-imprimer").hidden = true;
+document.getElementById("btn-emporter").hidden = !!window.claude;
+choisirVue(prefLocale("vue") || "menu");
+remplirReglages();
+lierReglages();
+if (!Object.keys(etat.plan).length) genererSemaine(); else afficher();
+connecterPartage();
+if (window.claude) window.claude.use("downloads").then(d => {
+  telechargements = d;
+  document.getElementById("btn-emporter").hidden = !d;
+});
+// Site web : appli installable qui démarre aussi sans réseau
+if (!window.claude && "serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
