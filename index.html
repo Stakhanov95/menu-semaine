@@ -100,6 +100,18 @@
   .archives li div { flex: 1; min-width: 0; }
   .archives ul { list-style: none; padding: 0; }
 
+  /* Dates */
+  .titre-semaine { margin: 0 0 10px; font-size: 1.15rem; text-wrap: balance; }
+  .date-jour { font-weight: 400; color: var(--doux); font-size: .9rem; }
+  .badge-jour { background: var(--vert); color: var(--sur-vert); border-radius: 999px; padding: 1px 8px; font-size: .72rem; font-weight: 600; vertical-align: 1px; }
+  .jour.aujourdhui { border-color: var(--vegetarien); box-shadow: 0 0 0 1px var(--vegetarien); }
+
+  /* Articles libres */
+  .form-libre { display: flex; gap: 6px; margin: 4px 0 6px; }
+  .form-libre input { flex: 1; min-width: 0; padding: 7px; font: inherit; color: var(--texte); background: var(--carte);
+                      border: 1px solid var(--bord); border-radius: 8px; }
+  .retirer-libre { border: none; background: none; padding: 0 6px; font-size: 1.1rem; line-height: 1; color: var(--doux); }
+
   /* Partager avec le foyer */
   .lien-foyer input { width: 100%; padding: 8px; font: inherit; font-size: .85rem; color: var(--texte); background: var(--surface2);
                       border: 1px solid var(--bord); border-radius: 8px; }
@@ -184,7 +196,6 @@
     <button class="principal" id="btn-generer">✨ Générer une nouvelle semaine</button>
     <button id="btn-copier">📋 Copier la liste de courses</button>
     <button id="btn-foyer" hidden>👪 Partager avec le foyer</button>
-    <button id="btn-emporter">📱 Emporter la semaine</button>
     <button id="btn-archives">📚 Mes semaines</button>
     <button id="btn-imprimer">🖨️ Imprimer</button>
     <span class="synchro" id="synchro"></span>
@@ -272,6 +283,7 @@
 
   <div class="contenu">
     <section id="vue-menu">
+      <h2 class="titre-semaine" id="titre-semaine"></h2>
       <div id="bandeau-batch"></div>
       <p class="aide-deplacer" id="aide-deplacer" hidden>↔️ Touchez la poignée ⠿ d'un autre repas pour les échanger, ou un créneau « non prévu » pour l'y déplacer.
         <button data-annuler-selection>Annuler</button></p>
@@ -375,6 +387,8 @@ const etatParDefaut = () => ({
   plan: {},     // "jour-moment" -> nom de recette
   batch: [],    // plats cuisinés en avance : [{ nom, cles: ["0-din", "2-din"] }]
   coches: {},   // ingrédients déjà achetés
+  libres: {},   // articles ajoutés à la main dans la liste : { id: "lait" }
+  debut: null,  // lundi de la semaine prévue ("2026-11-02")
   creee: null,  // date de création de la semaine
   archives: []  // semaines précédentes
 });
@@ -406,7 +420,8 @@ const partage = { semaine: null, coches: null, ecrireCoche: null, immediat: fals
 let sale = false, ecritureEnCours = false, ecritureEnAttente = false, minuteurEcriture = null, fileCoches = Promise.resolve();
 
 function etatPartage() {
-  const { coches, ...reste } = etat;
+  // Coches et articles libres vivent dans le document « coches »
+  const { coches, libres, ...reste } = etat;
   return JSON.parse(JSON.stringify(reste));
 }
 
@@ -461,11 +476,33 @@ function changerCoche(id, coche) {
   if (partage.immediat) { partage.ecrireCoche(id, coche).catch(erreurPartage); return; }
   fileCoches = fileCoches.then(() => partage.ecrireCoche(id, coche)).catch(erreurPartage);
 }
+// Nouvelle semaine : on décoche tout, et on ne garde que les articles libres pas encore achetés
 function viderCoches() {
+  const libres = Object.fromEntries(Object.entries(etat.libres || {}).filter(([id, t]) => t && !etat.coches["libre|" + id]));
   etat.coches = {};
+  etat.libres = libres;
   if (!partage.coches || partage.lectureSeule) return;
-  if (partage.immediat) { partage.coches.set({ items: {} }).catch(erreurPartage); return; }
-  fileCoches = fileCoches.then(() => partage.coches.set({ items: {} })).catch(erreurPartage);
+  if (partage.immediat) { partage.coches.set({ items: {}, libres }).catch(erreurPartage); return; }
+  fileCoches = fileCoches.then(() => partage.coches.set({ items: {}, libres })).catch(erreurPartage);
+}
+
+// Articles ajoutés à la main (lait, pain…), partagés comme les coches
+function ecrireListe(champs) {
+  try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch (e) {}
+  afficherCourses();
+  if (!partage.coches || partage.lectureSeule) return;
+  if (partage.immediat) { partage.ecrireChamps(champs).catch(erreurPartage); return; }
+  fileCoches = fileCoches.then(() => partage.ecrireChamps(champs)).catch(erreurPartage);
+}
+function ajouterLibre(texte) {
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  etat.libres = { ...(etat.libres || {}), [id]: texte };
+  ecrireListe({ libres: { [id]: texte } });
+}
+function retirerLibre(id) {
+  delete etat.libres[id];
+  delete etat.coches["libre|" + id];
+  ecrireListe({ libres: { [id]: null }, items: { ["libre|" + id]: false } });
 }
 
 // --- Hébergement 1 : page claude.ai
@@ -473,10 +510,12 @@ async function fournisseurClaude() {
   const db = await window.claude.use("db");
   if (!db) return null;
   const coches = db.doc("foyer/coches");
+  // update fusionne les champs imbriqués ; s'il n'y a pas encore de document, on le crée
+  const ecrireChamps = champs => coches.update(champs)
+    .catch(() => coches.set({ items: { ...etat.coches }, libres: { ...etat.libres } }));
   return {
-    semaine: db.doc("foyer/semaine"), coches, immediat: false,
-    // update fusionne les champs imbriqués ; s'il n'y a pas encore de document, on le crée
-    ecrireCoche: (id, v) => coches.update({ items: { [id]: v } }).catch(() => coches.set({ items: { ...etat.coches } }))
+    semaine: db.doc("foyer/semaine"), coches, immediat: false, ecrireChamps,
+    ecrireCoche: (id, v) => ecrireChamps({ items: { [id]: v } })
   };
 }
 
@@ -518,10 +557,11 @@ async function fournisseurFirebase(foyer) {
   if (!dejaConnecte) await auth.signInAnonymously();
   const dossier = db.collection("foyers").doc(foyer).collection("donnees");
   const coches = dossier.doc("coches");
+  // « merge » ne touche qu'aux articles concernés, pas au reste de la liste
+  const ecrireChamps = champs => coches.set(champs, { merge: true });
   return {
-    semaine: dossier.doc("semaine"), coches, immediat: true,
-    // « merge » ne touche qu'à l'article coché, pas au reste de la liste
-    ecrireCoche: (id, v) => coches.set({ items: { [id]: v } }, { merge: true })
+    semaine: dossier.doc("semaine"), coches, immediat: true, ecrireChamps,
+    ecrireCoche: (id, v) => ecrireChamps({ items: { [id]: v } })
   };
 }
 
@@ -560,7 +600,7 @@ async function connecterPartage() {
     }
     premier = false;
     const d = JSON.parse(JSON.stringify(snap.data()));
-    etat = { ...etatParDefaut(), ...d, coches: etat.coches,
+    etat = { ...etatParDefaut(), ...d, coches: etat.coches, libres: etat.libres,
              reglages: { ...etatParDefaut().reglages, ...d.reglages } };
     try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat)); } catch (e) {}
     remplirReglages();
@@ -571,6 +611,7 @@ async function connecterPartage() {
     if (!snap.exists) return;
     const items = snap.data().items || {};
     etat.coches = Object.fromEntries(Object.entries(items).filter(([, v]) => v));
+    etat.libres = Object.fromEntries(Object.entries(snap.data().libres || {}).filter(([, t]) => t));
     afficherCourses();
   }, erreurPartage);
 }
@@ -760,12 +801,25 @@ function choisirRecette(creneau, type, dejaPris, plaisirDejaPris, exclure, baseP
     r => !r.plaisir,
     () => true
   ];
+  // D'abord un plat absent des dernières semaines, tant que type et temps sont respectés
+  const recents = platsRecents();
+  for (const filtre of essais.slice(0, 2)) {
+    const choix = pool.filter(r => filtre(r) && !recents.has(r.nom));
+    if (choix.length) return aleatoire(preferer(choix));
+  }
   for (const filtre of essais) {
     const choix = pool.filter(filtre);
     if (choix.length) return aleatoire(preferer(choix));
   }
   return null;
 }
+
+// Plats servis lors des 2 dernières semaines de l'historique
+const platsRecents = () => new Set((etat.archives || []).slice(0, 2).flatMap(a => Object.values(a.plan)));
+const sansRecents = recettes => {
+  const recents = platsRecents(), neufs = recettes.filter(r => !recents.has(r.nom));
+  return neufs.length ? neufs : recettes;
+};
 
 // Plats proposés en batch cooking : prévus pour, se réchauffent bien, et repas complets
 const eligiblesBatch = () => candidates().filter(r => r.batch && !r.plaisir && analyseEquilibre(r).ok);
@@ -798,12 +852,13 @@ function genererSemaine() {
   etat.plan = {};
   etat.batch = [];
   etat.creee = new Date().toISOString();
+  etat.debut = dateLocale(lundiCible());
   termesDisponibles = [...dejaLa()];
 
   // 1. Les plats batch d'abord, choisis selon les quotas de protéines
   const [nbPlats, nbRepas] = (etat.reglages.batch || "0").split("x").map(Number);
   for (const g of nbPlats ? creneauxBatch(creneaux, nbPlats, nbRepas) : []) {
-    const pool = eligiblesBatch().filter(r => !pris.has(r.nom));
+    const pool = sansRecents(eligiblesBatch().filter(r => !pris.has(r.nom)));
     const max = Math.max(...Object.values(reste));
     const duType = pool.filter(r => reste[r.proteine] === max && max > 0);
     const r = aleatoire(preferer(duType.length ? duType : pool));
@@ -845,7 +900,7 @@ function changerRecette(cle) {
   const groupe = groupeBatch(cle);
   if (groupe) {
     const pris = new Set(Object.values(etat.plan));
-    const r = aleatoire(preferer(eligiblesBatch().filter(r => !pris.has(r.nom))));
+    const r = aleatoire(preferer(sansRecents(eligiblesBatch().filter(r => !pris.has(r.nom)))));
     if (!r) return;
     groupe.cles.forEach(k => { if (etat.plan[k] === groupe.nom) etat.plan[k] = r.nom; });
     groupe.nom = r.nom;
@@ -917,11 +972,11 @@ function afficher() {
   document.getElementById("info-saison").innerHTML =
     `Saison : <b>${NOMS_SAISONS[saison]}</b> — ${PRODUITS_SAISON[saison]}`;
   afficherPrefs();
+  document.getElementById("titre-semaine").textContent = titreSemaine();
   afficherBandeauBatch();
   afficherJours();
   afficherEquilibre();
   afficherCourses();
-  afficherRecettesImpression();
 }
 
 function etiquette(r) {
@@ -966,7 +1021,10 @@ function afficherJours() {
           <button data-changer="${cle}" title="Proposer une autre recette" aria-label="Proposer une autre recette">🔄</button>
         </div></div>`;
     }).join("");
-    return `<div class="jour${actifs ? "" : " sans-repas"}"><h3>${nomJour}</h3>${blocs}</div>`;
+    const date = dateDuJour(j);
+    const aujourdhui = dateLocale(date) === dateLocale(new Date());
+    return `<div class="jour${actifs ? "" : " sans-repas"}${aujourdhui ? " aujourdhui" : ""}">
+      <h3>${nomJour} <span class="date-jour">${date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>${aujourdhui ? ` <span class="badge-jour">Aujourd'hui</span>` : ""}</h3>${blocs}</div>`;
   }).join("");
   document.getElementById("jours").innerHTML = html;
   document.getElementById("aide-deplacer").hidden = !glisse.selection;
@@ -1087,18 +1145,34 @@ function afficherEquilibre() {
 function afficherCourses() {
   const liste = listeDeCourses();
   const el = document.getElementById("courses");
-  if (!liste.length) { el.innerHTML = "<h2>🛒 Liste de courses</h2><p class='astuce'>Générez une semaine pour obtenir la liste.</p>"; return; }
   const masquer = prefLocale("masquer") === "1";
   el.classList.toggle("masquer", masquer);
+  // Saisie en cours conservée si un autre appareil met la liste à jour
+  const saisie = document.getElementById("saisie-libre");
+  const brouillon = saisie ? saisie.value : "", avaitFocus = saisie && document.activeElement === saisie;
+  const libres = Object.entries(etat.libres || {});
   el.innerHTML = `<h2>🛒 Liste de courses <small class="astuce">(${etat.reglages.personnes} pers.)</small></h2>
     <div class="options-courses"><span id="compteur-courses"></span>
-      <label><input type="checkbox" id="masquer-coches" ${masquer ? "checked" : ""}> Masquer les articles cochés</label></div>` +
+      <label><input type="checkbox" id="masquer-coches" ${masquer ? "checked" : ""}> Masquer les articles cochés</label></div>
+    <h4>📝 Autres articles</h4>
+    <form class="form-libre" id="form-libre"><input type="text" id="saisie-libre" placeholder="Ajouter : lait, pain, café…"
+      aria-label="Ajouter un article à la liste" autocomplete="off"><button>Ajouter</button></form>
+    <ul>${libres.map(([id, texte]) => {
+      const coche = etat.coches["libre|" + id];
+      return `<li class="${coche ? "coche" : ""}"><label><input type="checkbox" data-coche="libre|${id}" ${coche ? "checked" : ""}>
+        <span>${echapper(texte)}</span></label>
+        <button class="retirer-libre" data-retirer-libre="${id}" aria-label="Retirer ${echapper(texte)}">×</button></li>`;
+    }).join("")}</ul>` +
+    (liste.length ? "" : "<p class='astuce'>Générez une semaine pour obtenir la liste des ingrédients.</p>") +
     liste.map(({ rayon, items }) => `<h4>${rayon}</h4><ul>` + items.map(t => {
       const id = t.ing + "|" + t.unite, coche = etat.coches[id];
       const qte = rayon.startsWith("Placard") ? "" : formatCourses(t.qte, t.unite);
       return `<li class="${coche ? "coche" : ""}"><label><input type="checkbox" data-coche="${echapper(id)}" ${coche ? "checked" : ""}>
         <span>${echapper(t.ing)}</span><span class="qte">${qte}</span></label></li>`;
     }).join("") + "</ul>").join("");
+  const nouvelleSaisie = document.getElementById("saisie-libre");
+  nouvelleSaisie.value = brouillon;
+  if (avaitFocus) nouvelleSaisie.focus();
   compterReste();
 }
 
@@ -1151,7 +1225,9 @@ function ouvrirRecette(nom) {
 }
 
 function texteListe() {
-  return listeDeCourses().map(({ rayon, items }) => `— ${rayon} —\n` + items
+  const libres = Object.entries(etat.libres || {}).filter(([id]) => !etat.coches["libre|" + id]);
+  const entete = libres.length ? `— Autres articles —\n${libres.map(([, t]) => "☐ " + t).join("\n")}\n\n` : "";
+  return entete + listeDeCourses().map(({ rayon, items }) => `— ${rayon} —\n` + items
     .filter(t => !etat.coches[t.ing + "|" + t.unite])
     .map(t => `☐ ${t.ing}${rayon.startsWith("Placard") ? "" : " : " + formatCourses(t.qte, t.unite)}`).join("\n")
   ).join("\n\n");
@@ -1181,7 +1257,7 @@ function archiverSemaine() {
   const signature = JSON.stringify(etat.plan);
   if (etat.archives.some(a => JSON.stringify(a.plan) === signature)) return false;
   etat.archives.unshift({ id: Date.now(), creee: etat.creee || new Date().toISOString(),
-                          plan: { ...etat.plan }, batch: etat.batch || [] });
+                          debut: dateLocale(debutDe(etat)), plan: { ...etat.plan }, batch: etat.batch || [] });
   etat.archives = etat.archives.slice(0, MAX_ARCHIVES);
   sauver();
   return true;
@@ -1193,12 +1269,12 @@ function ouvrirArchives() {
     <h2>📚 Mes semaines</h2>
     <p class="astuce">La semaine en cours est enregistrée automatiquement à chaque modification. Quand vous générez
       une nouvelle semaine, l'ancienne est rangée ici (${MAX_ARCHIVES} dernières semaines).
-      Ces données restent dans ce navigateur : pour consulter les recettes sur votre téléphone, utilisez « 📱 Emporter la semaine ».</p>
+      Avec le lien du foyer, l'historique est partagé entre tous vos appareils.</p>
     <button data-archive="enregistrer">💾 Enregistrer la semaine actuelle dans l'historique</button>
     <p class="erreur" id="archive-message" style="color:var(--vert)"></p>
     ${archives.length ? `<ul>${archives.map(a => {
       const plats = [...new Set(Object.values(a.plan))];
-      return `<li><div><b>Semaine créée le ${dateCourte(a.creee)}</b><br>
+      return `<li><div><b>${titreSemaine(debutDe(a))}</b> <span class="astuce">(préparée le ${dateCourte(a.creee)})</span><br>
         <span class="astuce">${Object.keys(a.plan).length} repas · ${echapper(plats.slice(0, 3).join(" · "))}${plats.length > 3 ? "…" : ""}</span></div>
         <button data-archive="rouvrir" data-id="${a.id}">Rouvrir</button>
         <button data-archive="supprimer" data-id="${a.id}" title="Supprimer">🗑️</button></li>`;
@@ -1221,6 +1297,8 @@ function actionArchive(action, id) {
     etat.plan = { ...archive.plan };
     etat.batch = archive.batch || [];
     etat.creee = archive.creee;
+    // Une semaine rouverte est replanifiée pour la semaine à venir
+    etat.debut = dateLocale(lundiCible());
     viderCoches();
     // Les créneaux de la semaine rouverte redeviennent actifs
     for (const cle of Object.keys(etat.plan)) {
@@ -1242,114 +1320,29 @@ function actionArchive(action, id) {
   }
 }
 
-// ------------------------------------------------------------------ emporter la semaine
-// Crée un fichier HTML autonome (menu + liste à cocher + recettes) à ouvrir
-// sur le téléphone, même sans connexion.
-const titreSemaine = () => `Semaine du ${new Date(etat.creee || Date.now()).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+// ------------------------------------------------------------------ dates de la semaine
+// La semaine prévue commence un lundi : celui de la semaine en cours quand on
+// prépare du lundi au jeudi, le lundi suivant quand on prépare en fin de semaine.
+const dateLocale = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const lireDate = texte => { const [a, m, j] = texte.split("-").map(Number); return new Date(a, m - 1, j); };
 
-function fichierSemaine() {
-  const recettes = [...new Set(Object.values(etat.plan))].map(recetteParNom).filter(Boolean);
-  const ancre = nom => "r" + recettes.findIndex(r => r.nom === nom);
-  const menu = JOURS.map((nomJour, j) => {
-    const lignes = ["dej", "din"].filter(m => etat.plan[`${j}-${m}`]).map(m => {
-      const cle = `${j}-${m}`, nom = etat.plan[cle], g = groupeBatch(cle);
-      return `<li><small>${MOMENTS[m]}</small> <a href="#${ancre(nom)}">${echapper(nom)}</a>${g ? " <em>🍱 à réchauffer</em>" : ""}</li>`;
-    });
-    return lignes.length ? `<h3>${nomJour}</h3><ul>${lignes.join("")}</ul>` : "";
-  }).join("");
-  const batch = (etat.batch || []).filter(b => b.cles.some(k => etat.plan[k] === b.nom));
-  const courses = listeDeCourses().map(({ rayon, items }) => `<h3>${rayon}</h3>` + items.map(t => {
-    const id = t.ing + "|" + t.unite;
-    const qte = rayon.startsWith("Placard") ? "à vérifier" : formatCourses(t.qte, t.unite);
-    return `<label class="article"><input type="checkbox" data-id="${echapper(id)}" ${etat.coches[id] ? "checked" : ""}>
-      <span>${echapper(t.ing)}</span><span class="qte">${qte}</span></label>`;
-  }).join("")).join("");
-  const id = "courses-" + (etat.creee || Date.now());
-
-  return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${titreSemaine()}</title>
-<style>
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f5f0; color: #2b2b2b; line-height: 1.45; }
-  header { background: #3f7d4e; color: #fff; padding: 12px 16px; position: sticky; top: 0; z-index: 1; }
-  header h1 { margin: 0 0 6px; font-size: 1.2rem; }
-  nav { display: flex; gap: 8px; }
-  nav a { color: #fff; background: rgba(255,255,255,.18); padding: 6px 10px; border-radius: 8px; text-decoration: none; font-size: .95rem; }
-  section, article { background: #fff; margin: 12px; padding: 12px 16px; border-radius: 12px; border: 1px solid #e4e0d8; }
-  h2 { margin-top: 0; } h3 { color: #3f7d4e; font-size: 1rem; margin: 14px 0 4px; }
-  .article { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid #eee; font-size: 1.05rem; }
-  .article input { width: 22px; height: 22px; }
-  .article .qte { margin-left: auto; color: #6b6b6b; white-space: nowrap; }
-  .article input:checked ~ span { text-decoration: line-through; color: #aaa; }
-  .astuce { font-size: .85rem; color: #6b6b6b; }
-  .encadre { background: #e5f1e7; border-radius: 10px; padding: 8px 12px; font-size: .9rem; margin: 10px 0; }
-  .encadre.batch { background: #fdf0e6; }
-  ul { padding-left: 20px; } a { color: #c8642a; }
-  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #e4e0d8; background: #fff; margin-top: 10px; }
-</style></head><body>
-<header><h1>🥕 ${titreSemaine()}</h1>
-  <nav><a href="#courses">🛒 Courses</a><a href="#menu">📅 Menu</a><a href="#recettes">📖 Recettes</a></nav></header>
-<section id="courses"><h2>🛒 Liste de courses <small class="astuce">(${etat.reglages.personnes} pers.)</small></h2>
-  <p class="astuce">Cochez au fur et à mesure : les cases restent cochées sur ce téléphone.</p>
-  ${courses}<button id="raz">Tout décocher</button></section>
-<section id="menu"><h2>📅 Menu</h2>
-  ${batch.length ? `<p class="encadre batch">🍱 <b>À cuisiner le dimanche</b> : ${batch.map(b => `<a href="#${ancre(b.nom)}">${echapper(b.nom)}</a>`).join(", ")}</p>` : ""}
-  ${menu}</section>
-<div id="recettes">${recettes.map(r => `<article id="${ancre(r.nom)}">${htmlRecette(r)}<p><a href="#menu">↑ Retour au menu</a></p></article>`).join("")}</div>
-<script>
-  const CLE = ${JSON.stringify(id)};
-  let coches = {};
-  try { coches = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) {}
-  const cases = document.querySelectorAll("[data-id]");
-  cases.forEach(c => {
-    if (c.dataset.id in coches) c.checked = coches[c.dataset.id];
-    c.addEventListener("change", () => {
-      coches[c.dataset.id] = c.checked;
-      try { localStorage.setItem(CLE, JSON.stringify(coches)); } catch (e) {}
-    });
-  });
-  document.getElementById("raz").addEventListener("click", () => {
-    cases.forEach(c => { c.checked = false; coches[c.dataset.id] = false; });
-    try { localStorage.setItem(CLE, JSON.stringify(coches)); } catch (e) {}
-  });
-<\/script>
-</body></html>`;
+function lundiCible(date = new Date()) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const jour = (d.getDay() + 6) % 7;  // 0 = lundi
+  d.setDate(d.getDate() - jour + (jour >= 4 ? 7 : 0));
+  return d;
 }
-
-// En ligne, le fichier passe par la fenêtre d'enregistrement de Claude ;
-// en local, par un téléchargement (ou le menu de partage du téléphone).
-let telechargements = null;
-
-async function emporterSemaine() {
-  if (!Object.keys(etat.plan).length) return;
-  const nomFichier = `${titreSemaine()}.html`;
-  const contenu = fichierSemaine();
-  let resultat = "telecharge";
-  if (window.claude) {
-    if (!telechargements) return;
-    try { await telechargements.save({ filename: nomFichier, data: contenu }); }
-    catch (e) { return; /* refusé ou indisponible : rien à afficher */ }
-  } else {
-    const fichier = new File([contenu], nomFichier, { type: "text/html" });
-    if (matchMedia("(pointer: coarse)").matches && navigator.canShare && navigator.canShare({ files: [fichier] })) {
-      try { await navigator.share({ files: [fichier], title: titreSemaine() }); resultat = "partage"; } catch (e) {}
-    }
-    if (resultat !== "partage") {
-      const lien = document.createElement("a");
-      lien.href = URL.createObjectURL(fichier);
-      lien.download = nomFichier;
-      document.body.appendChild(lien); lien.click(); lien.remove();
-      setTimeout(() => URL.revokeObjectURL(lien.href), 5000);
-    }
-  }
-  document.getElementById("modale-contenu").innerHTML = `<h2>📱 Version hors connexion prête</h2>
-    <p>Le fichier <b>${echapper(nomFichier)}</b> ${resultat === "partage" ? "a été partagé" : "est dans vos Téléchargements"}.
-      Il contient la <b>liste de courses à cocher</b>, le <b>menu</b> et <b>toutes les recettes</b>, et s'ouvre sans connexion,
-      pratique dans un magasin où le réseau passe mal.</p>
-    <p class="astuce">Les coches faites dans ce fichier restent sur le téléphone qui l'a ouvert.
-      Pour cocher à plusieurs en direct, utilisez plutôt la page en ligne.</p>
-    <p style="text-align:right"><button data-fermer>Fermer</button></p>`;
-  document.getElementById("modale").classList.add("ouverte");
+const debutDe = semaine => semaine.debut ? lireDate(semaine.debut) : lundiCible(semaine.creee ? new Date(semaine.creee) : new Date());
+function dateDuJour(j, debut = debutDe(etat)) {
+  const d = new Date(debut);
+  d.setDate(d.getDate() + j);
+  return d;
+}
+function titreSemaine(debut = debutDe(etat)) {
+  const fin = dateDuJour(6, debut);
+  const memeMois = debut.getMonth() === fin.getMonth();
+  return `Semaine du ${debut.toLocaleDateString("fr-FR", memeMois ? { day: "numeric" } : { day: "numeric", month: "long" })}`
+    + ` au ${fin.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
 }
 
 // ------------------------------------------------------------------ réglages
@@ -1412,11 +1405,13 @@ function choisirVue(vue) {
 // ------------------------------------------------------------------ événements
 document.getElementById("btn-generer").addEventListener("click", genererSemaine);
 document.getElementById("btn-imprimer").addEventListener("click", () => window.print());
+// Les recettes à imprimer ne sont construites qu'au moment d'imprimer (bouton ou Ctrl+P)
+addEventListener("beforeprint", afficherRecettesImpression);
+addEventListener("afterprint", () => document.getElementById("recettes-impression").innerHTML = "");
 document.getElementById("btn-copier").addEventListener("click", async e => {
   e.target.textContent = (await copier(texteListe())) ? "✅ Liste copiée !" : "❌ Copie impossible";
   setTimeout(() => e.target.textContent = "📋 Copier la liste de courses", 2000);
 });
-document.getElementById("btn-emporter").addEventListener("click", emporterSemaine);
 document.getElementById("btn-archives").addEventListener("click", ouvrirArchives);
 document.getElementById("btn-foyer").addEventListener("click", ouvrirFoyer);
 // Ouvrir le lien d'un autre foyer alors que la page est déjà ouverte
@@ -1431,6 +1426,16 @@ document.getElementById("liste-ingredients").innerHTML =
     .filter(n => !RAYONS["Placard (à vérifier)"].includes(n))
     .sort((a, b) => a.localeCompare(b, "fr"))
     .map(n => `<option value="${echapper(n)}">`).join("");
+// La liste de courses est redessinée souvent : écoute de son formulaire au niveau du document
+document.addEventListener("submit", e => {
+  if (e.target.id !== "form-libre") return;
+  e.preventDefault();
+  const saisie = document.getElementById("saisie-libre");
+  const textes = saisie.value.split(",").map(t => t.trim()).filter(Boolean);
+  saisie.value = "";
+  textes.forEach(ajouterLibre);
+  document.getElementById("saisie-libre").focus();
+});
 document.querySelectorAll("form[data-liste]").forEach(f => f.addEventListener("submit", e => {
   e.preventDefault();
   const saisie = f.querySelector("input");
@@ -1450,7 +1455,8 @@ document.addEventListener("click", e => {
     return;
   }
   const t = e.target.closest("button, [data-voir], .modale") || e.target;
-  if (t.dataset.annulerSelection !== undefined) { glisse.selection = null; finirGlisse(); afficherJours(); }
+  if (t.dataset.retirerLibre) retirerLibre(t.dataset.retirerLibre);
+  else if (t.dataset.annulerSelection !== undefined) { glisse.selection = null; finirGlisse(); afficherJours(); }
   else if (t.dataset.pref) actionPref(t);
   else if (t.dataset.vue) choisirVue(t.dataset.vue);
   else if (t.dataset.archive) actionArchive(t.dataset.archive, +t.dataset.id);
@@ -1478,16 +1484,11 @@ document.addEventListener("keydown", e => {
 
 // En ligne, l'impression est bloquée par le cadre de la page : on retire le bouton
 if (window.claude) document.getElementById("btn-imprimer").hidden = true;
-document.getElementById("btn-emporter").hidden = !!window.claude;
 choisirVue(prefLocale("vue") || "menu");
 remplirReglages();
 lierReglages();
 if (!Object.keys(etat.plan).length) genererSemaine(); else afficher();
 connecterPartage();
-if (window.claude) window.claude.use("downloads").then(d => {
-  telechargements = d;
-  document.getElementById("btn-emporter").hidden = !d;
-});
 // Site web : appli installable qui démarre aussi sans réseau
 if (!window.claude && "serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js").catch(() => {});
