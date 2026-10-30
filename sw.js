@@ -2,7 +2,7 @@
 // même sans réseau (au magasin). Les données du foyer, elles, sont gérées
 // par Firebase, qui a son propre mode hors connexion.
 // Changer VERSION à chaque mise en ligne force la mise à jour des fichiers.
-const VERSION = "menu-v2";
+const VERSION = "menu-v3";
 const FICHIERS = ["./", "index.html", "recettes.js", "config-firebase.js", "manifest.webmanifest",
                   "icones/icone-192.png", "icones/icone-512.png", "icones/apple-touch-icon.png"];
 // Scripts externes qu'on peut garder en cache (Firebase et le QR code)

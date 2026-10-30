@@ -100,6 +100,11 @@
   .archives li div { flex: 1; min-width: 0; }
   .archives ul { list-style: none; padding: 0; }
 
+  /* Noms de plats et créneaux libres : de vrais boutons (clavier), sans en avoir l'air */
+  button.nom { border: none; background: none; padding: 0; font: inherit; font-weight: 600; color: inherit; text-align: left; }
+  .repas button.nom { padding: 0; font-size: inherit; }
+  button.repas.depot { display: block; width: 100%; font: inherit; font-size: .75rem; cursor: pointer; }
+
   /* Dates */
   .titre-semaine { margin: 0 0 10px; font-size: 1.15rem; text-wrap: balance; }
   .date-jour { font-weight: 400; color: var(--doux); font-size: .9rem; }
@@ -285,7 +290,7 @@
     <section id="vue-menu">
       <h2 class="titre-semaine" id="titre-semaine"></h2>
       <div id="bandeau-batch"></div>
-      <p class="aide-deplacer" id="aide-deplacer" hidden>↔️ Touchez la poignée ⠿ d'un autre repas pour les échanger, ou un créneau « non prévu » pour l'y déplacer.
+      <p class="aide-deplacer" id="aide-deplacer" role="status" hidden>↔️ Touchez la poignée ⠿ d'un autre repas pour les échanger, ou un créneau « non prévu » pour l'y déplacer.
         <button data-annuler-selection>Annuler</button></p>
       <p class="astuce" style="margin-top:0">Astuce : faites glisser un repas par sa poignée ⠿ pour le changer de jour ou passer du dîner au déjeuner.</p>
       <div class="jours" id="jours"></div>
@@ -307,7 +312,7 @@
 </nav>
 
 <div class="modale" id="modale">
-  <div class="boite" id="modale-contenu"></div>
+  <div class="boite" id="modale-contenu" role="dialog" aria-modal="true" aria-labelledby="titre-modale" tabindex="-1"></div>
 </div>
 
 <script src="recettes.js"></script>
@@ -629,7 +634,7 @@ async function ouvrirFoyer() {
   }
   const lien = lienFoyer(partage.foyer);
   const message = `Voici notre menu de la semaine et la liste de courses à cocher ensemble : ${lien}`;
-  document.getElementById("modale-contenu").innerHTML = `<h2>👪 Partager avec le foyer</h2>
+  ouvrirModale(`<h2>👪 Partager avec le foyer</h2>
     <p>Toute personne qui ouvre ce lien voit le menu, les recettes et la liste de courses, et peut cocher les articles :
       les coches apparaissent chez tout le monde en direct. <b>Pas besoin de compte.</b></p>
     <p class="lien-foyer"><input type="text" id="lien-foyer" value="${echapper(lien)}" readonly aria-label="Lien du foyer"></p>
@@ -644,8 +649,7 @@ async function ouvrirFoyer() {
       <li>Menu du navigateur → <b>Ajouter à l'écran d'accueil</b> (Safari : bouton Partager → « Sur l'écran d'accueil »).</li>
       <li>L'icône 🥕 ouvre ensuite directement votre menu, même sans réseau au magasin.</li></ol>
     <p class="astuce">Gardez ce lien pour le foyer : toute personne qui l'a peut voir et modifier la liste.</p>
-    <p style="text-align:right"><button data-fermer>Fermer</button></p>`;
-  document.getElementById("modale").classList.add("ouverte");
+    <p style="text-align:right"><button data-fermer>Fermer</button></p>`);
   document.getElementById("copier-foyer").addEventListener("click", async e => {
     const ok = await copier(lien);
     if (!ok) document.getElementById("lien-foyer").select();
@@ -991,7 +995,7 @@ function afficherBandeauBatch() {
     .filter(b => b.cles.length);
   document.getElementById("bandeau-batch").innerHTML = groupes.length ? `<div class="bandeau">
     <b>🍱 À cuisiner le dimanche</b> (≈ ${groupes.reduce((t, b) => t + recetteParNom(b.nom).temps, 0)} min au total) :
-    <ul style="margin:6px 0 0">${groupes.map(b => `<li><span class="nom" data-voir="${echapper(b.nom)}">${echapper(b.nom)}</span>
+    <ul style="margin:6px 0 0">${groupes.map(b => `<li><button class="nom" data-voir="${echapper(b.nom)}">${echapper(b.nom)}</button>
       — ${b.cles.length} repas : ${b.cles.map(nomCreneau).join(", ")}</li>`).join("")}</ul></div>` : "";
 }
 
@@ -1003,7 +1007,8 @@ function afficherJours() {
       const cle = `${j}-${m}`;
       const r = recetteParNom(etat.plan[cle]);
       // Créneau non prévu : zone de dépôt visible seulement pendant un déplacement
-      if (!etat.reglages.repas[j][m]) return `<div class="repas depot" data-cible="${cle}">${MOMENTS[m]} non prévu · glissez un repas ici</div>`;
+      if (!etat.reglages.repas[j][m]) return `<button class="repas depot" data-cible="${cle}" ${glisse.selection ? "" : 'tabindex="-1"'}
+        aria-label="${nomJour} ${MOMENTS[m].toLowerCase()} non prévu : y déplacer le repas sélectionné">${MOMENTS[m]} non prévu · glissez un repas ici</button>`;
       actifs++;
       if (!r) return `<div class="repas vide" data-cible="${cle}"><div class="moment">${MOMENTS[m]}</div>Cliquez sur « Générer »</div>`;
       const groupe = groupeBatch(cle);
@@ -1012,8 +1017,9 @@ function afficherJours() {
       const aEviter = exclus.filter(t => recetteContient(r, t));
       const utilise = maison.filter(t => recetteContient(r, t));
       return `<div class="repas ${r.proteine}${glisse.selection === cle ? " selectionne" : ""}" data-cle="${cle}" data-cible="${cle}">
-        <div class="moment"><button class="poignee" data-poignee="${cle}" title="Glisser pour déplacer (ou toucher puis toucher un autre repas)" aria-label="Déplacer ce repas">⠿</button>${MOMENTS[m]}${badge}</div>
-        <span class="nom" data-voir="${echapper(r.nom)}">${echapper(r.nom)}</span>
+        <div class="moment"><button class="poignee" data-poignee="${cle}" title="Glisser pour déplacer (ou toucher puis toucher un autre repas)"
+          aria-label="Déplacer ${nomJour.toLowerCase()} ${MOMENTS[m].toLowerCase()} : ${echapper(r.nom)}" aria-pressed="${glisse.selection === cle}">⠿</button>${MOMENTS[m]}${badge}</div>
+        <button class="nom" data-voir="${echapper(r.nom)}">${echapper(r.nom)}</button>
         ${aEviter.length ? `<div class="alerte">⚠️ Contient ${echapper(aEviter.join(", "))} : cliquez sur 🔄</div>` : ""}
         ${utilise.length ? `<div class="maison">🏠 Utilise : ${echapper(utilise.join(", "))}</div>` : ""}
         <div class="infos">
@@ -1108,19 +1114,28 @@ document.addEventListener("pointerup", e => {
     if (cible) deplacerRepas(g.cle, cible.dataset.cible); else afficherJours();
     return;
   }
-  // Simple toucher : sélection, puis échange au toucher suivant
-  if (glisse.selection && glisse.selection !== g.cle) {
+  finirGlisse();
+  choisirPoignee(g.cle, false);
+});
+document.addEventListener("pointercancel", () => { finirGlisse(); afficherJours(); });
+
+// Toucher (ou Entrée au clavier) sur une poignée : sélection, puis échange
+// ou déplacement au toucher suivant. Au clavier, le focus suit le repas.
+function choisirPoignee(cle, clavier) {
+  let focus = cle;
+  if (glisse.selection && glisse.selection !== cle) {
     const source = glisse.selection;
     glisse.selection = null;
     finirGlisse();
-    deplacerRepas(source, g.cle);
+    deplacerRepas(source, cle);
   } else {
-    glisse.selection = glisse.selection === g.cle ? null : g.cle;
+    glisse.selection = glisse.selection === cle ? null : cle;
     finirGlisse();
     afficherJours();
+    if (glisse.selection) focus = glisse.selection;
   }
-});
-document.addEventListener("pointercancel", () => { finirGlisse(); afficherJours(); });
+  if (clavier) document.querySelector(`[data-poignee="${focus}"]`)?.focus();
+}
 
 function afficherEquilibre() {
   const recettes = Object.values(etat.plan).map(recetteParNom).filter(Boolean);
@@ -1216,12 +1231,32 @@ function afficherRecettesImpression() {
     noms.map(recetteParNom).filter(Boolean).map(r => `<div class="recette-imprimee">${htmlRecette(r)}</div>`).join("");
 }
 
+// Fenêtre de dialogue : le focus y entre à l'ouverture et revient au bouton d'origine à la fermeture
+let focusAvantModale = null;
+function ouvrirModale(html) {
+  const contenu = document.getElementById("modale-contenu");
+  // Une fenêtre qui se redessine (historique) garde le focus d'origine
+  if (!document.getElementById("modale").classList.contains("ouverte")) focusAvantModale = document.activeElement;
+  contenu.innerHTML = html;
+  const titre = contenu.querySelector("h2");
+  if (titre) titre.id = "titre-modale";
+  document.getElementById("modale").classList.add("ouverte");
+  contenu.focus();
+}
+function fermerModale() {
+  const modale = document.getElementById("modale");
+  if (!modale.classList.contains("ouverte")) return;
+  modale.classList.remove("ouverte");
+  if (focusAvantModale && focusAvantModale !== document.body && document.contains(focusAvantModale)) focusAvantModale.focus();
+  else document.getElementById("modale-contenu").blur();
+  focusAvantModale = null;
+}
+
 function ouvrirRecette(nom) {
   const r = recetteParNom(nom);
   if (!r) return;
-  document.getElementById("modale-contenu").innerHTML = htmlRecette(r) +
-    `<p style="text-align:right"><button data-fermer>Fermer</button></p>`;
-  document.getElementById("modale").classList.add("ouverte");
+  ouvrirModale(htmlRecette(r) +
+    `<p style="text-align:right"><button data-fermer>Fermer</button></p>`);
 }
 
 function texteListe() {
@@ -1265,7 +1300,7 @@ function archiverSemaine() {
 
 function ouvrirArchives() {
   const archives = etat.archives || [];
-  document.getElementById("modale-contenu").innerHTML = `<div class="archives">
+  ouvrirModale(`<div class="archives">
     <h2>📚 Mes semaines</h2>
     <p class="astuce">La semaine en cours est enregistrée automatiquement à chaque modification. Quand vous générez
       une nouvelle semaine, l'ancienne est rangée ici (${MAX_ARCHIVES} dernières semaines).
@@ -1279,8 +1314,7 @@ function ouvrirArchives() {
         <button data-archive="rouvrir" data-id="${a.id}">Rouvrir</button>
         <button data-archive="supprimer" data-id="${a.id}" title="Supprimer">🗑️</button></li>`;
     }).join("")}</ul>` : `<p class="astuce">Aucune semaine enregistrée pour l'instant.</p>`}
-    <p style="text-align:right"><button data-fermer>Fermer</button></p></div>`;
-  document.getElementById("modale").classList.add("ouverte");
+    <p style="text-align:right"><button data-fermer>Fermer</button></p></div>`);
 }
 
 function actionArchive(action, id) {
@@ -1312,7 +1346,7 @@ function actionArchive(action, id) {
       c.checked = etat.reglages.repas[j][m];
     });
     afficher();
-    document.getElementById("modale").classList.remove("ouverte");
+    fermerModale();
   } else if (action === "supprimer") {
     etat.archives = etat.archives.filter(a => a.id !== id);
     sauver();
@@ -1446,23 +1480,27 @@ document.querySelectorAll("form[data-liste]").forEach(f => f.addEventListener("s
 }));
 
 document.addEventListener("click", e => {
+  const clavier = e.detail === 0;  // bouton activé par Entrée ou Espace
   const depot = e.target.closest(".depot");
   if (depot && glisse.selection) {
-    const source = glisse.selection;
+    const source = glisse.selection, cible = depot.dataset.cible;
     glisse.selection = null;
     finirGlisse();
-    deplacerRepas(source, depot.dataset.cible);
+    deplacerRepas(source, cible);
+    if (clavier) document.querySelector(`[data-poignee="${cible}"]`)?.focus();
     return;
   }
   const t = e.target.closest("button, [data-voir], .modale") || e.target;
-  if (t.dataset.retirerLibre) retirerLibre(t.dataset.retirerLibre);
+  // À la souris ou au doigt, la poignée est gérée par pointerdown / pointerup
+  if (t.dataset.poignee) { if (clavier) choisirPoignee(t.dataset.poignee, true); }
+  else if (t.dataset.retirerLibre) retirerLibre(t.dataset.retirerLibre);
   else if (t.dataset.annulerSelection !== undefined) { glisse.selection = null; finirGlisse(); afficherJours(); }
   else if (t.dataset.pref) actionPref(t);
   else if (t.dataset.vue) choisirVue(t.dataset.vue);
   else if (t.dataset.archive) actionArchive(t.dataset.archive, +t.dataset.id);
   else if (t.dataset.changer) changerRecette(t.dataset.changer);
   else if (t.dataset.voir) ouvrirRecette(t.dataset.voir);
-  else if (t.dataset.fermer !== undefined || e.target.id === "modale") document.getElementById("modale").classList.remove("ouverte");
+  else if (t.dataset.fermer !== undefined || e.target.id === "modale") fermerModale();
 });
 document.addEventListener("change", e => {
   if (e.target.id === "masquer-coches") {
@@ -1477,9 +1515,24 @@ document.addEventListener("change", e => {
   compterReste();
 });
 document.addEventListener("keydown", e => {
+  const modale = document.getElementById("modale");
+  // Tab reste dans la fenêtre ouverte
+  if (e.key === "Tab" && modale.classList.contains("ouverte")) {
+    const elements = [...modale.querySelectorAll("button, a[href], input, select, textarea")].filter(el => !el.disabled);
+    if (!elements.length) return;
+    const premier = elements[0], dernier = elements[elements.length - 1];
+    if (e.shiftKey && document.activeElement === premier) { e.preventDefault(); dernier.focus(); }
+    else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
+    else if (!modale.contains(document.activeElement)) { e.preventDefault(); premier.focus(); }
+    return;
+  }
   if (e.key !== "Escape") return;
-  document.getElementById("modale").classList.remove("ouverte");
-  if (glisse.selection) { glisse.selection = null; finirGlisse(); afficherJours(); }
+  if (modale.classList.contains("ouverte")) { fermerModale(); return; }
+  if (glisse.selection) {
+    const cle = glisse.selection;
+    glisse.selection = null; finirGlisse(); afficherJours();
+    document.querySelector(`[data-poignee="${cle}"]`)?.focus();
+  }
 });
 
 // En ligne, l'impression est bloquée par le cadre de la page : on retire le bouton
